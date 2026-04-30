@@ -410,7 +410,7 @@ function updateCard(cardId, data, originalText) {
                 <button class="btn-submit-type" onclick="submitFeedback('${data.row_id}', false, '${pred}')">Save Fix</button>
             </div>
         </div>
-        <div id="fb_success_${data.row_id}" style="display:none; margin-top: 20px; color: #1e8e3e; font-weight: bold; text-align: center; font-size: 14px; background: #e6f4ea; padding: 10px; border-radius: 6px;">✅ Feedback Saved to Conflictor!</div>
+        <div id="fb_success_${data.row_id}" style="display:none; margin-top: 20px; color: #1e8e3e; font-weight: bold; text-align: center; font-size: 14px; background: #e6f4ea; padding: 10px; border-radius: 6px;">✅ Feedback Saved!</div>
     `;
 }
 
