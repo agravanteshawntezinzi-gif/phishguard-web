@@ -1,25 +1,118 @@
 <!DOCTYPE html>
-<html lang="tl">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>PhishGuard - Login</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PhishGuard | Admin Login</title>
+<!-- Connects the shield icon to the browser tab -->
+<link rel="icon" type="image/png" href="../img/shield.png">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
-    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f7fe; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-    .login-box { background: white; padding: 40px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 350px; text-align: center; }
-    .login-box h1 { color: #1a73e8; margin-bottom: 5px; }
-    .login-box p { color: #888; font-size: 14px; margin-bottom: 30px; }
-    input { width: 100%; padding: 15px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 14px; }
-    button { width: 100%; padding: 15px; background: #1a73e8; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.3s; }
-    button:hover { background: #1557b0; }
+    /* Matches the main site's clean aesthetic */
+    body { 
+        font-family: 'Inter', sans-serif; 
+        background: #f4f7f6; 
+        display: flex; 
+        justify-content: center; 
+        align-items: center; 
+        height: 100vh; 
+        margin: 0; 
+    }
+    .login-box { 
+        background: white; 
+        padding: 40px; 
+        border-radius: 15px; 
+        box-shadow: 0 10px 40px rgba(0,0,0,0.08); 
+        width: 100%; 
+        max-width: 380px; 
+        text-align: center; 
+        border: 1px solid #eaeaea; 
+    }
+    .login-logo { 
+        width: 70px; 
+        height: auto; 
+        margin-bottom: 15px; 
+    }
+    .login-box h1 { 
+        color: #1a73e8; 
+        margin: 0 0 5px 0; 
+        font-size: 26px; 
+        font-weight: 700; 
+    }
+    .login-box p { 
+        color: #5f6368; 
+        font-size: 14px; 
+        margin-bottom: 30px; 
+    }
+    input { 
+        width: 100%; 
+        padding: 15px; 
+        margin-bottom: 15px; 
+        border: 1px solid #ddd; 
+        border-radius: 8px; 
+        box-sizing: border-box; 
+        font-size: 14px; 
+        font-family: 'Inter', sans-serif; 
+        outline: none; 
+        transition: 0.3s; 
+    }
+    input:focus { 
+        border-color: #1a73e8; 
+        box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.1); 
+    }
+    button { 
+        width: 100%; 
+        padding: 15px; 
+        background: #1a73e8; 
+        color: white; 
+        border: none; 
+        border-radius: 8px; 
+        font-size: 16px; 
+        font-weight: bold; 
+        cursor: pointer; 
+        transition: 0.3s; 
+        box-shadow: 0 4px 15px rgba(26, 115, 232, 0.3); 
+    }
+    button:hover { 
+        background: #1557b0; 
+        transform: translateY(-2px); 
+    }
+    .error-msg {
+        color: #d93025; 
+        font-size: 13px; 
+        margin-top: 15px; 
+        display: none;
+        font-weight: 600;
+    }
 </style>
 </head>
 <body>
     <div class="login-box">
-        <h1>🛡️ PhishGuard</h1>
-        <p>Admin Authentication System</p>
-        <input type="text" placeholder="Username" value="admin">
-        <input type="password" placeholder="Password" value="password">
-        <button onclick="window.location.href='dashboard.html'">L O G I N</button>
+        <!-- Pulls the logo from the main image folder -->
+        <img src="../img/logo.png" alt="PhishGuard Logo" class="login-logo">
+        <h1>PhishGuard</h1>
+        <p>Admin System Authentication</p>
+        
+        <input type="text" id="username" placeholder="Username" autocomplete="off">
+        <input type="password" id="password" placeholder="Password">
+        
+        <button onclick="handleLogin()">Secure Login</button>
+        
+        <p id="errorMsg" class="error-msg">❌ Invalid username or password.</p>
     </div>
+
+    <script>
+        function handleLogin() {
+            const user = document.getElementById('username').value;
+            const pass = document.getElementById('password').value;
+            
+            // Demo security for presentation purposes
+            if(user === 'admin' && pass === 'phishguard2026') {
+                window.location.href = 'dashboard.html';
+            } else {
+                document.getElementById('errorMsg').style.display = 'block';
+            }
+        }
+    </script>
 </body>
 </html>
