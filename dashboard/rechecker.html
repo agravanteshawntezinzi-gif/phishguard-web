@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PhishGuard - Data Rechecker & Conflictor</title>
+
+<link rel="icon" type="image/png" href="img/logo.png">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- Fixed Tab Icon Path -->
+<link rel="icon" type="image/png" href="img/shield.png">
+
+<!-- ADMIN SECURITY LOCK -->
+<script src="js/lock.js"></script>
+
+<style>
+    /* GLOBAL & SIDEBAR */
+    :root { --primary: #1a73e8; --sidebar: #1e1e2d; --bg-light: #f4f7fe; --safe: #1e8e3e; --spam: #fbc02d; --scam: #d93025; --text-muted: #888; }
+    body { margin: 0; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: var(--bg-light); color: #333; display: flex; height: 100vh; overflow: hidden;}
+    .sidebar { width: 260px; background: var(--sidebar); color: white; display: flex; flex-direction: column; padding-top: 20px; box-shadow: 2px 0 10px rgba(0,0,0,0.1); z-index: 100;}
+    .sidebar-header { text-align: center; padding-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 20px; }
+    
+    /* Fixed Logo Styling for Sidebar */
+    .sidebar-logo { width: 35px; height: auto; margin-bottom: 5px; }
+    .sidebar-header h2 { margin: 0; font-size: 22px; letter-spacing: 1px; color: #fff; display: flex; align-items: center; justify-content: center; gap: 10px;}
+    
+    .sidebar-header span { font-size: 12px; color: #aaa; }
+    .nav-links { display: flex; flex-direction: column; gap: 5px; padding: 0 15px; }
+    .nav-link { padding: 15px 20px; color: #bbb; text-decoration: none; border-radius: 8px; font-weight: bold; transition: 0.3s; display: flex; align-items: center; gap: 12px; font-size: 15px;}
+    .nav-link:hover, .nav-link.active { background: var(--primary); color: white; }
+    
+    /* Logout button converted to secure button */
+    .logout-btn { margin-top: auto; margin-bottom: 20px; margin-left: 15px; margin-right: 15px; padding: 15px; background: rgba(217, 48, 37, 0.1); color: #ff6b6b; text-align: center; text-decoration: none; border-radius: 8px; font-weight: bold; transition: 0.3s; border: none; cursor: pointer; font-size: 15px;}
+    .logout-btn:hover { background: var(--scam); color: white; }
+
+    /* MAIN CONTENT */
+    .main-content { flex: 1; padding: 30px; overflow-y: auto; display: flex; flex-direction: column; gap: 20px;}
+    
+    /* TOGGLE SWITCH HEADER */
+    .header-controls { display: flex; justify-content: space-between; align-items: center; background: white; padding: 15px 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);}
+    .header-controls h2 { margin: 0; color: var(--sidebar); }
+    .mode-toggle { display: flex; background: #eee; border-radius: 30px; padding: 4px; }
+    .mode-btn { padding: 10px 20px; border: none; background: transparent; border-radius: 25px; cursor: pointer; font-weight: bold; color: #666; transition: 0.3s; }
+    .mode-btn.active { background: var(--primary); color: white; box-shadow: 0 2px 8px rgba(26, 115, 232, 0.4); }
+
+    /* CONTAINER */
+    .container { max-width: 1000px; margin: 0 auto; background: white; padding: 40px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); width: 100%; box-sizing: border-box;}
+    h1 { text-align: center; color: var(--primary); font-weight: 700; margin-bottom: 5px; }
+    .subtitle { text-align: center; color: var(--text-muted); margin-bottom: 30px; font-size: 14px; }
+    
+    /* INPUTS */
+    .input-group { display: flex; gap: 15px; margin-bottom: 30px; }
+    .input-group input { flex: 1; padding: 16px; border: 2px dashed #ccc; border-radius: 12px; background: #fcfcfc; font-size: 16px; outline: none; transition: 0.3s; color: #333;}
+    .input-group input:focus { border-color: var(--primary); background: #e8f0fe;}
+    .fetch-btn { padding: 0 30px; background: var(--primary); color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.3s;}
+    .fetch-btn:hover { background: #1557b0; }
+    .fetch-btn-alt { padding: 15px 30px; background: #333; color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.3s; width: 100%; margin-bottom: 20px;}
+    .fetch-btn-alt:hover { background: #555; }
+
+    /* CARDS GRID */
+    .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 20px; }
+    .result-section { padding: 25px; border-radius: 12px; border: 1px solid #ccc; background: white; box-shadow: 0 4px 10px rgba(0,0,0,0.02); display: flex; flex-direction: column; transition: 0.3s;}
+    
+    .scam { border-top: 6px solid var(--scam); background: #fffcfc; }
+    .safe { border-top: 6px solid var(--safe); background: #fafffb; }
+    .spam { border-top: 6px solid var(--spam); background: #fff8e1; }
+    .conflict { border-top: 6px solid #e91e63; background: #fdf5f8; } 
+    .harvest { border-top: 6px solid #1a73e8; background: #f4f8ff; } 
+    .unknown { border-top: 6px solid #5f6368; }
+
+    .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px dashed #ccc; padding-bottom: 10px;}
+    .row-badge { font-size: 12px; font-weight: bold; color: #fff; background: #333; padding: 5px 10px; border-radius: 6px;}
+    .current-label { font-size: 14px; font-weight: bold; display: flex; align-items: center; gap: 5px;}
+
+    .preview-text { font-size: 13px; color: #555; background: #eee; padding: 12px; border-radius: 8px; flex: 1; max-height: 100px; overflow-y: auto; margin-bottom: 20px; border: 1px solid #e0e0e0;}
+    
+    /* FEEDBACK BUTTONS */
+    .feedback-btns { display: flex; gap: 10px; }
+    .btn-safe { background: var(--safe); color: white; border: none; padding: 12px; border-radius: 8px; flex: 1; cursor: pointer; font-weight: bold; font-size: 13px; transition: 0.2s;}
+    .btn-spam { background: var(--spam); color: white; border: none; padding: 12px; border-radius: 8px; flex: 1; cursor: pointer; font-weight: bold; font-size: 13px; transition: 0.2s;}
+    .btn-scam { background: var(--scam); color: white; border: none; padding: 12px; border-radius: 8px; flex: 1; cursor: pointer; font-weight: bold; font-size: 13px; transition: 0.2s;}
+    .btn-safe:hover { background: #146c2e; transform: translateY(-2px);}
+    .btn-spam:hover { background: #e0a800; transform: translateY(-2px);}
+    .btn-scam:hover { background: #b82218; transform: translateY(-2px);}
+
+    .overlay-success { display: none; text-align: center; color: var(--safe); font-weight: bold; padding: 20px; background: #e8f5e9; border-radius: 8px; border: 1px solid #c8e6c9; font-size: 16px; margin-top: auto;}
+    .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <!-- Fixed Logo Path here -->
+            <h2><img src="img/logo.png" alt="Logo" class="sidebar-logo"> PhishGuard</h2>
+            <span>Admin Dashboard</span>
+        </div>
+        <div class="nav-links">
+            <a href="dashboard.html" class="nav-link">📊 System Analytics</a>
+            <!-- Removed Scanner and Settings Links -->
+            <a href="feeder.html" class="nav-link">📁 CSV Data Feeder</a>
+            <a href="rechecker.html" class="nav-link active">✏️ Data Rechecker</a>
+        </div>
+        <!-- Log Out uses the secure performLogout function -->
+        <button class="logout-btn" onclick="performLogout()">Log Out</button>
+    </div>
+
+    <div class="main-content">
+        <div class="header-controls">
+            <h2>Data Operations</h2>
+            <div class="mode-toggle">
+                <button class="mode-btn active" id="btnModeManual" onclick="switchMode('manual')">✏️ Manual Check</button>
+                <button class="mode-btn" id="btnModeConflict" onclick="switchMode('conflict')">⚖️ Data Conflicts</button>
+                <button class="mode-btn" id="btnModeReport" onclick="switchMode('report')">📱 User Reports</button>
+                <button class="mode-btn" id="btnModeHarvest" onclick="switchMode('harvest')">📥 Data Harvesting</button>
+            </div>
+        </div>
+
+        <div class="container">
+            
+            <div id="panelManual">
+                <h1>Batch Data Rechecker</h1>
+                <div class="subtitle">Find exact row numbers from the CSV dataset to quickly update their labels.</div>
+                <div class="input-group">
+                    <input type="text" id="rowNumbers" placeholder="Excel Row Numbers (Example: 411, 422, 434)">
+                    <button class="fetch-btn" onclick="fetchManualRows()">🔍 FETCH DATA</button>
+                </div>
+            </div>
+
+            <div id="panelConflict" class="hidden">
+                <h1 style="color: #e91e63;">The Conflictor</h1>
+                <div class="subtitle">Automatically scans the database for exact duplicate messages that have conflicting/different labels.</div>
+                <button class="fetch-btn-alt" style="background: #e91e63;" onclick="fetchConflicts()">⚖️ SCAN FOR DATA CONFLICTS</button>
+            </div>
+
+            <div id="panelReport" class="hidden">
+                <h1 style="color: var(--sidebar);">Pending User Reports</h1>
+                <div class="subtitle">SMS reported as incorrect by users (App & Web) to help retrain the AI.</div>
+                <button class="fetch-btn-alt" onclick="fetchReports()">📱 LOAD PENDING REPORTS</button>
+            </div>
+
+            <div id="panelHarvest" class="hidden">
+                <h1 style="color: #1a73e8;">Data Harvesting (Raw Logs)</h1>
+                <div class="subtitle">Review new SMS messages that people scanned but are NOT YET in your AI Training Data. Label them to make your AI smarter!</div>
+                <button class="fetch-btn-alt" style="background: #1a73e8;" onclick="fetchRawLogs()">📥 LOAD UNSEEN MESSAGES</button>
+            </div>
+
+            <div class="cards-grid" id="cardsContainer">
+                <div style="grid-column: 1 / -1; text-align: center; color: #888; margin-top: 40px;">
+                    <h3>Select an operation mode above to begin.</h3>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+<script>
+    const BASE_URL = "https://shawntezinzi.pythonanywhere.com";
+
+    function switchMode(mode) {
+        document.getElementById('btnModeManual').classList.remove('active');
+        document.getElementById('btnModeConflict').classList.remove('active');
+        document.getElementById('btnModeReport').classList.remove('active');
+        document.getElementById('btnModeHarvest').classList.remove('active');
+        
+        document.getElementById('panelManual').classList.add('hidden');
+        document.getElementById('panelConflict').classList.add('hidden');
+        document.getElementById('panelReport').classList.add('hidden');
+        document.getElementById('panelHarvest').classList.add('hidden');
+
+        document.getElementById('cardsContainer').innerHTML = ''; 
+
+        if(mode === 'manual') {
+            document.getElementById('btnModeManual').classList.add('active');
+            document.getElementById('panelManual').classList.remove('hidden');
+        } else if (mode === 'conflict') {
+            document.getElementById('btnModeConflict').classList.add('active');
+            document.getElementById('panelConflict').classList.remove('hidden');
+        } else if (mode === 'report') {
+            document.getElementById('btnModeReport').classList.add('active');
+            document.getElementById('panelReport').classList.remove('hidden');
+        } else if (mode === 'harvest') {
+            document.getElementById('btnModeHarvest').classList.add('active');
+            document.getElementById('panelHarvest').classList.remove('hidden');
+        }
+    }
+
+    async function fetchManualRows() {
+        const inputStr = document.getElementById('rowNumbers').value;
+        if (!inputStr) { alert("Please enter the row numbers."); return; }
+
+        const rows = inputStr.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n));
+        if (rows.length === 0) { alert("No valid numbers found."); return; }
+
+        const container = document.getElementById('cardsContainer');
+        container.innerHTML = '<div style="grid-column: 1/-1; text-align:center;"><h3>Searching database... ⏳</h3></div>';
+
+        try {
+            // Added x-api-key header for security
+            const response = await fetch(`${BASE_URL}/feeder/api/get_specific_rows`, {
+                method: "POST", 
+                headers: { 
+                    "Content-Type": "application/json",
+                    "x-api-key": "phishguard12345"
+                }, 
+                body: JSON.stringify({ rows: rows })
+            });
+            const data = await response.json();
+            if (data.status === "error") throw new Error(data.message);
+            if (data.data.length === 0) {
+                container.innerHTML = '<div style="grid-column: 1/-1; text-align:center;"><h3 style="color:var(--scam);">No data found for those rows.</h3></div>';
+                return;
+            }
+
+            container.innerHTML = '';
+            data.data.forEach(item => {
+                let cardClass = "unknown"; let icon = "⚠️ UNKNOWN"; let color = "#555";
+                if(item.current_label === "SCAM") { cardClass = "scam"; icon = "🚨 SCAM"; color = "var(--scam)";}
+                if(item.current_label === "SPAM") { cardClass = "spam"; icon = "📧 SPAM"; color = "var(--spam)";}
+                if(item.current_label === "SAFE") { cardClass = "safe"; icon = "✅ SAFE"; color = "var(--safe)";}
+
+                container.innerHTML += `
+                    <div class="result-section ${cardClass}" id="card-manual-${item.id}">
+                        <div id="content-manual-${item.id}" style="display: flex; flex-direction: column; height: 100%;">
+                            <div class="card-header">
+                                <span class="row-badge">Row ${item.excel_row}</span>
+                                <span class="current-label" style="color: ${color};">${icon}</span>
+                            </div>
+                            <div class="preview-text">"${item.sms_text}"</div>
+                            <p style="font-size: 12px; color: #555; text-align: center;">Update correct label to:</p>
+                            <div class="feedback-btns">
+                                <button class="btn-safe" onclick="updateLabel('${item.id}', 'SAFE')">✅ SAFE</button>
+                                <button class="btn-spam" onclick="updateLabel('${item.id}', 'SPAM')">📧 SPAM</button>
+                                <button class="btn-scam" onclick="updateLabel('${item.id}', 'SCAM')">🚨 SCAM</button>
+                            </div>
+                        </div>
+                        <div id="success-manual-${item.id}" class="overlay-success">✅ Saved to Database!</div>
+                    </div>`;
+            });
+        } catch (err) { container.innerHTML = `<h3>Error: ${err.message}</h3>`; }
+    }
+
+    async function fetchConflicts() {
+        const container = document.getElementById('cardsContainer');
+        container.innerHTML = '<div style="grid-column: 1/-1; text-align:center;"><h3>Scanning the entire database... ⏳</h3></div>';
+
+        try {
+            // Added x-api-key header for security
+            const response = await fetch(`${BASE_URL}/conflict/api/get_conflicts`, {
+                headers: { "x-api-key": "phishguard12345" }
+            });
+            const data = await response.json();
+            
+            if (data.status === "error") throw new Error(data.message);
+            
+            const standardConflicts = data.data.filter(item => !item.is_user_report);
+
+            if (standardConflicts.length === 0) {
+                container.innerHTML = '<div style="grid-column: 1/-1; text-align:center;"><h2 style="color:var(--safe);">✅ Database is clean! No standard conflicts found.</h2></div>';
+                return;
+            }
+
+            container.innerHTML = `<div style="grid-column: 1/-1; text-align:center;"><h3 style="color:#e91e63;">Found ${standardConflicts.length} Conflicting Texts!</h3></div>`;
+            
+            standardConflicts.forEach((item, index) => {
+                const encodedText = btoa(unescape(encodeURIComponent(item.sms_text)));
+                
+                container.innerHTML += `
+                    <div class="result-section conflict" id="card-conflict-${index}">
+                        <div id="content-conflict-${index}" style="display: flex; flex-direction: column; height: 100%;">
+                            <div class="card-header" style="border-bottom: 1px solid #f8bbd0;">
+                                <span class="row-badge" style="background:#e91e63;">💥 CONFLICT</span>
+                                <span class="current-label" style="color: #e91e63;">${item.count} Copies Found</span>
+                            </div>
+                            <div class="preview-text">"${item.sms_text}"</div>
+                            <p style="font-size: 12px; color: #d81b60; font-weight: bold; text-align: center; margin-bottom:5px;">
+                                Labels Found: [${item.conflicting_labels.join(', ')}]
+                            </p>
+                            <p style="font-size: 11px; color: #888; text-align: center; margin-top:0;">
+                                Resolve conflict and force all ${item.count} copies to:
+                            </p>
+                            <div class="feedback-btns">
+                                <button class="btn-safe" onclick="resolveConflictBulk('conflict-${index}', '${encodedText}', 'SAFE')">Force to SAFE</button>
+                                <button class="btn-spam" onclick="resolveConflictBulk('conflict-${index}', '${encodedText}', 'SPAM')">Force to SPAM</button>
+                                <button class="btn-scam" onclick="resolveConflictBulk('conflict-${index}', '${encodedText}', 'SCAM')">Force to SCAM</button>
+                            </div>
+                        </div>
+                        <div id="success-conflict-${index}" class="overlay-success"></div>
+                    </div>`;
+            });
+        } catch (err) { container.innerHTML = `<h3>Error: ${err.message}</h3>`; }
+    }
+
+    async function fetchReports() {
+        const container = document.getElementById('cardsContainer');
+        container.innerHTML = '<div style="grid-column: 1/-1; text-align:center;"><h3>Fetching User Reports... ⏳</h3></div>';
+
+        try {
+            // Added x-api-key header for security
+            const response = await fetch(`${BASE_URL}/conflict/api/get_conflicts`, {
+                headers: { "x-api-key": "phishguard12345" }
+            });
+            const data = await response.json();
+            
+            if (data.status === "error") throw new Error(data.message);
+            
+            const appReports = data.data.filter(item => item.is_user_report);
+
+            if (appReports.length === 0) {
+                container.innerHTML = '<div style="grid-column: 1/-1; text-align:center;"><h2 style="color:var(--safe);">✅ No pending user reports!</h2></div>';
+                return;
+            }
+
+            container.innerHTML = `<div style="grid-column: 1/-1; text-align:center;"><h3 style="color:var(--sidebar);">${appReports.length} Pending User Reports</h3></div>`;
+
+            appReports.forEach((item, index) => {
+                const encodedText = btoa(unescape(encodeURIComponent(item.sms_text)));
+                
+                let aiGuess = item.conflicting_labels.find(l => l.startsWith("AI Guessed")) || "AI Guessed: UNKNOWN";
+                let userReport = item.conflicting_labels.find(l => l.startsWith("User Reported")) || "User Reported: UNKNOWN";
+
+                container.innerHTML += `
+                    <div class="result-section" style="border-top: 6px solid var(--sidebar);" id="card-report-${index}">
+                        <div id="content-report-${index}" style="display: flex; flex-direction: column; height: 100%;">
+                            <div class="card-header">
+                                <span class="row-badge" style="background:var(--sidebar);">📱 USER REPORT</span>
+                                <span style="font-size:12px; color:#888;">Pending Admin Review</span>
+                            </div>
+                            <div class="preview-text">"${item.sms_text}"</div>
+                            <div style="background:#f8f9fa; padding:10px; border-radius:8px; margin-bottom:15px; border:1px solid #ddd; font-size:12px;">
+                                <b>🤖 ${aiGuess}</b><br>
+                                <b style="color:var(--scam);">👤 ${userReport}</b>
+                            </div>
+                            <p style="font-size: 11px; color: #555; text-align: center;">Verify and save to dataset as:</p>
+                            <div class="feedback-btns">
+                                <button class="btn-safe" onclick="resolveConflictBulk('report-${index}', '${encodedText}', 'SAFE')">✅ SAFE</button>
+                                <button class="btn-spam" onclick="resolveConflictBulk('report-${index}', '${encodedText}', 'SPAM')">📧 SPAM</button>
+                                <button class="btn-scam" onclick="resolveConflictBulk('report-${index}', '${encodedText}', 'SCAM')">🚨 SCAM</button>
+                            </div>
+                        </div>
+                        <div id="success-report-${index}" class="overlay-success"></div>
+                    </div>`;
+            });
+        } catch (err) { container.innerHTML = `<h3>Error: ${err.message}</h3>`; }
+    }
+
+    async function fetchRawLogs() {
+        const container = document.getElementById('cardsContainer');
+        container.innerHTML = '<div style="grid-column: 1/-1; text-align:center;"><h3>Scanning Raw Logs for Unseen Messages... ⏳</h3></div>';
+
+        try {
+            // Added x-api-key header for security
+            const response = await fetch(`${BASE_URL}/conflict/api/get_unseen_raw`, {
+                headers: { "x-api-key": "phishguard12345" }
+            });
+            const data = await response.json();
+            
+            if (data.status === "error") throw new Error(data.message);
+
+            if (data.data.length === 0) {
+                container.innerHTML = '<div style="grid-column: 1/-1; text-align:center;"><h2 style="color:var(--safe);">✅ No new messages to harvest! Your AI knows everything currently in the logs.</h2></div>';
+                return;
+            }
+
+            container.innerHTML = `<div style="grid-column: 1/-1; text-align:center;"><h3 style="color:#1a73e8;">Found ${data.data.length} New Unique Messages!</h3></div>`;
+
+            data.data.forEach((item, index) => {
+                const encodedText = btoa(unescape(encodeURIComponent(item.sms_text)));
+                let guessColor = "#555";
+                if(item.ai_label === "SAFE") guessColor = "var(--safe)";
+                if(item.ai_label === "SPAM") guessColor = "var(--spam)";
+                if(item.ai_label === "SCAM") guessColor = "var(--scam)";
+
+                container.innerHTML += `
+                    <div class="result-section harvest" id="card-harvest-${index}">
+                        <div id="content-harvest-${index}" style="display: flex; flex-direction: column; height: 100%;">
+                            <div class="card-header">
+                                <span class="row-badge" style="background:#1a73e8;">📥 NEW RAW DATA</span>
+                                <span class="current-label" style="color: #1a73e8;">Scanned ${item.count} Time(s)</span>
+                            </div>
+                            <div class="preview-text">"${item.sms_text}"</div>
+                            <p style="font-size: 12px; color: #555; text-align: center; margin-bottom:5px;">
+                                AI Currently Guesses: <strong style="color:${guessColor};">${item.ai_label}</strong>
+                            </p>
+                            <p style="font-size: 11px; color: #888; text-align: center; margin-top:0;">
+                                Inject this into Training Data as:
+                            </p>
+                            <div class="feedback-btns">
+                                <button class="btn-safe" onclick="resolveConflictBulk('harvest-${index}', '${encodedText}', 'SAFE')">✅ SAFE</button>
+                                <button class="btn-spam" onclick="resolveConflictBulk('harvest-${index}', '${encodedText}', 'SPAM')">📧 SPAM</button>
+                                <button class="btn-scam" onclick="resolveConflictBulk('harvest-${index}', '${encodedText}', 'SCAM')">🚨 SCAM</button>
+                            </div>
+                        </div>
+                        <div id="success-harvest-${index}" class="overlay-success"></div>
+                    </div>`;
+            });
+        } catch (err) { container.innerHTML = `<h3>Error: ${err.message}</h3>`; }
+    }
+
+    async function resolveConflictBulk(elementId, encodedText, newLabel) {
+        try {
+            const rawText = decodeURIComponent(escape(atob(encodedText)));
+            
+            // Added x-api-key header for security
+            const response = await fetch(`${BASE_URL}/conflict/api/resolve_conflict_bulk`, {
+                method: "POST", 
+                headers: { 
+                    "Content-Type": "application/json",
+                    "x-api-key": "phishguard12345"
+                }, 
+                body: JSON.stringify({ sms_text: rawText, label: newLabel })
+            });
+            
+            const data = await response.json();
+            if (data.status === "error") throw new Error(data.message);
+
+            document.getElementById(`content-${elementId}`).style.display = 'none';
+            
+            let successDiv = document.getElementById(`success-${elementId}`);
+            successDiv.innerHTML = `✅ Successfully injected to Training Data as ${newLabel}!`;
+            successDiv.style.display = 'block';
+            
+            let card = document.getElementById(`card-${elementId}`);
+            card.className = 'result-section'; 
+            if(newLabel === "SAFE") card.classList.add('safe');
+            if(newLabel === "SPAM") card.classList.add('spam');
+            if(newLabel === "SCAM") card.classList.add('scam');
+            
+        } catch(err) { alert("System Error: " + err.message); }
+    }
+
+    async function updateLabel(rowId, newLabel) {
+        try {
+            // Added x-api-key header for security
+            const response = await fetch(`${BASE_URL}/feeder/api/update_row_label`, {
+                method: "POST", 
+                headers: { 
+                    "Content-Type": "application/json",
+                    "x-api-key": "phishguard12345"
+                }, 
+                body: JSON.stringify({ id: rowId, label: newLabel })
+            });
+            const data = await response.json();
+            if (data.status === "error") throw new Error(data.message);
+
+            document.getElementById(`content-manual-${rowId}`).style.display = 'none';
+            document.getElementById(`success-manual-${rowId}`).style.display = 'block';
+            let card = document.getElementById(`card-manual-${rowId}`);
+            card.className = 'result-section'; 
+            if(newLabel === "SAFE") card.classList.add('safe');
+            if(newLabel === "SPAM") card.classList.add('spam');
+            if(newLabel === "SCAM") card.classList.add('scam');
+        } catch (err) { alert("Error connecting to server: " + err.message); }
+    }
+</script>
+</body>
+</html>
