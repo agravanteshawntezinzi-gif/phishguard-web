@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PhishGuard | SMS Phishing Detection System</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+    /* =========================================
+       GLOBAL & RESET
+       ========================================= */
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Inter', sans-serif; background: #f4f7f6; margin: 0; padding: 0; color: #333; line-height: 1.6; }
+    * { box-sizing: border-box; }
+    
+    /* =========================================
+       NAVIGATION BAR
+       ========================================= */
+    .navbar {
+        position: fixed; top: 0; width: 100%; background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px); box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 15px 50px; z-index: 1000;
+    }
+    .nav-logo { font-size: 24px; font-weight: 700; color: #1a73e8; display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .nav-links { display: flex; gap: 25px; align-items: center; }
+    .nav-links a { text-decoration: none; color: #5f6368; font-weight: 600; font-size: 15px; transition: color 0.3s; }
+    .nav-links a:hover { color: #1a73e8; }
+    .nav-btn { background: #1a73e8; color: white !important; padding: 8px 20px; border-radius: 20px; transition: background 0.3s; }
+    .nav-btn:hover { background: #1557b0; }
+
+    /* =========================================
+       SECTIONS LAYOUT
+       ========================================= */
+    section {
+        min-height: 100vh; padding: 100px 20px 50px 20px; 
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+    }
+    .section-title { font-size: 32px; font-weight: 700; color: #202124; margin-bottom: 10px; text-align: center; }
+    .section-subtitle { font-size: 16px; color: #5f6368; margin-bottom: 40px; text-align: center; max-width: 600px; }
+
+    /* =========================================
+       HERO SECTION
+       ========================================= */
+    #home { background: linear-gradient(135deg, #e8f0fe 0%, #ffffff 100%); text-align: center; }
+    .hero-content h1 { font-size: 50px; color: #1a73e8; margin-bottom: 20px; line-height: 1.2; }
+    .hero-content p { font-size: 20px; color: #5f6368; margin-bottom: 40px; max-width: 700px; margin-left: auto; margin-right: auto; }
+    .hero-buttons { display: flex; gap: 20px; justify-content: center; }
+    .btn-primary { background: #1a73e8; color: white; padding: 15px 30px; border-radius: 8px; font-size: 18px; font-weight: bold; text-decoration: none; box-shadow: 0 4px 15px rgba(26, 115, 232, 0.3); transition: transform 0.2s, background 0.3s; }
+    .btn-primary:hover { background: #1557b0; transform: translateY(-2px); }
+    .btn-secondary { background: white; color: #1a73e8; padding: 15px 30px; border-radius: 8px; font-size: 18px; font-weight: bold; text-decoration: none; border: 2px solid #1a73e8; transition: background 0.3s, color 0.3s; }
+    .btn-secondary:hover { background: #f4f7f6; }
+
+    /* =========================================
+       SCANNER SECTION
+       ========================================= */
+    #scanner { background: #ffffff; justify-content: flex-start; }
+    .scanner-container { width: 100%; max-width: 800px; background: white; padding: 40px; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.08); border: 1px solid #eaeaea; }
+    
+    .input-area { position: relative; border: 2px dashed #ccc; border-radius: 12px; background: #fcfcfc; transition: all 0.3s ease; margin-bottom: 25px; }
+    .input-area.dragover { border-color: #1a73e8; background: #e8f0fe; }
+    .input-area textarea { width: 100%; height: 180px; padding: 20px; padding-bottom: 60px; border: none; background: transparent; resize: vertical; font-size: 16px; outline: none; color: #333; font-family: inherit; transition: opacity 0.3s; }
+    
+    .button-group-bottom { position: absolute; bottom: 12px; width: 100%; display: flex; justify-content: space-between; padding: 0 15px; pointer-events: none; }
+    .clear-trigger { background: #fee6e6; padding: 8px 15px; border-radius: 20px; font-size: 13px; font-weight: bold; cursor: pointer; color: #d93025; transition: 0.2s; pointer-events: auto; }
+    .clear-trigger:hover { background: #fcc; }
+    .upload-trigger { background: #e8f0fe; padding: 8px 15px; border-radius: 20px; font-size: 13px; font-weight: bold; cursor: pointer; color: #1a73e8; transition: 0.2s; pointer-events: auto; }
+    .upload-trigger:hover { background: #d2e3fc; }
+    input[type="file"] { display: none; }
+
+    /* IMAGE QUEUE */
+    .image-queue-container { display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 20px; }
+    .queue-item { position: relative; width: 70px; height: 70px; border-radius: 8px; border: 2px solid #ddd; background: #eee; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    .queue-item img { width: 100%; height: 100%; object-fit: cover; border-radius: 6px; }
+    .queue-item .remove-btn { position: absolute; top: -8px; right: -8px; background: #d93025; color: white; border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; font-size: 12px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: transform 0.2s;}
+    .queue-item .remove-btn:hover { background: #b82218; transform: scale(1.1); }
+
+    /* SCAN BUTTON */
+    .scan-btn { width: 100%; padding: 18px; background: #1a73e8; color: white; border: none; border-radius: 12px; font-size: 18px; font-weight: bold; cursor: pointer; transition: background 0.3s, transform 0.1s; box-shadow: 0 4px 15px rgba(26, 115, 232, 0.3); }
+    .scan-btn:hover { background: #1557b0; }
+    .scan-btn:active { transform: scale(0.98); }
+    .scan-btn:disabled { background: #a0c3ff; cursor: not-allowed; transform: none; box-shadow: none; }
+    .loading { animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0% {opacity:0.6} 50% {opacity:1} 100% {opacity:0.6} }
+    
+    /* CAROUSEL RESULTS */
+    .carousel-container { display: flex; overflow-x: auto; gap: 20px; padding: 20px 5px; scroll-snap-type: x mandatory; }
+    .carousel-container::-webkit-scrollbar { height: 10px; }
+    .carousel-container::-webkit-scrollbar-thumb { background: #1a73e8; border-radius: 10px; }
+    .carousel-container::-webkit-scrollbar-track { background: #e0e0e0; border-radius: 10px; }
+
+    .result-section { flex: 0 0 380px; max-width: 380px; scroll-snap-align: start; padding: 25px; border-radius: 12px; display: inline-block; animation: fadeIn 0.5s; border: 1px solid #eaeaea; box-shadow: 0 5px 15px rgba(0,0,0,0.05); background: white; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    
+    .scam { border-top: 6px solid #d93025; }
+    .safe { border-top: 6px solid #1e8e3e; }
+    .spam { border-top: 6px solid #fbc02d; }
+    .unknown { border-top: 6px solid #5f6368; }
+    
+    .status-label { font-size: 22px; margin-top: 0; display: flex; align-items: center; gap: 10px; color: #202124;}
+    .preview-text { font-size: 14px; color: #555; background: #f8f9fa; padding: 12px; border-radius: 8px; max-height: 80px; overflow-y: auto; margin-bottom: 15px; word-wrap: break-word; white-space: pre-wrap; border: 1px solid #eee;}
+    
+    .verified-link { background: #e8f0fe; color: #1a73e8; padding: 12px; border-radius: 8px; font-size: 14px; margin-bottom: 15px; border-left: 4px solid #1a73e8; word-wrap: break-word;}
+    .link-details { margin-top: 10px; font-size: 12px; color: #555; border-top: 1px dashed #ccc; padding-top: 10px;}
+    .link-details span { display: block; margin-bottom: 4px; }
+    .confidence-bar{ height:10px; background:#ddd; border-radius:6px; overflow:hidden; margin-top: 8px; }
+    
+    .feedback-container { margin-top: 25px; padding-top: 20px; border-top: 1px solid #eee; }
+    .feedback-btns { display: flex; gap: 10px; margin-top: 10px; }
+    .btn-yes { background: #1e8e3e; color: white; border: none; padding: 10px; border-radius: 6px; flex: 1; cursor: pointer; font-weight: 600; transition: 0.2s;}
+    .btn-yes:hover { background: #146c2e; }
+    .btn-no { background: #d93025; color: white; border: none; padding: 10px; border-radius: 6px; flex: 1; cursor: pointer; font-weight: 600; transition: 0.2s;}
+    .btn-no:hover { background: #b82218; }
+    .btn-submit-type { background: #5f6368; color: white; border: none; padding: 12px; border-radius: 6px; width: 100%; cursor: pointer; font-weight: bold; margin-top: 10px;}
+    select { width: 100%; padding: 12px; font-size: 15px; margin-top: 10px; border-radius: 6px; border: 1px solid #ccc; font-family: inherit;}
+
+    /* =========================================
+       HISTORY & GUIDE SECTIONS
+       ========================================= */
+    #guide, #history, #policy { background: #ffffff; align-items: center; }
+    #history { background: #f4f7f6; }
+    .text-card { width: 100%; max-width: 800px; background: #f8f9fa; padding: 40px; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.03); border: 1px solid #eaeaea; }
+    .history-card { width: 100%; max-width: 800px; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.05); }
+    
+    #historyList { list-style-type: none; padding: 0; margin: 0; font-size: 14px; max-height: 400px; overflow-y: auto;}
+    #historyList li { padding: 15px; border-bottom: 1px solid #eee; display: flex; align-items: flex-start; gap: 15px;}
+    #historyList li:last-child { border-bottom: none; }
+    
+    .step-box { display: flex; gap: 20px; margin-bottom: 25px; align-items: flex-start; }
+    .step-num { background: #1a73e8; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: bold; flex-shrink: 0; }
+    .step-content h4 { margin: 0 0 5px 0; color: #202124; font-size: 18px; }
+    .step-content p { margin: 0; color: #555; }
+    
+    .policy-content h4 { color: #1a73e8; margin-top: 25px; margin-bottom: 10px; }
+    .policy-content p { color: #444; }
+
+    /* =========================================
+       ABOUT/SYSTEM SECTION & FOOTER
+       ========================================= */
+    #about { background: #202124; color: white; min-height: auto; padding-bottom: 100px; }
+    #about .section-title { color: white; }
+    #about .section-subtitle { color: #aaa; }
+    .tech-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; max-width: 800px; width: 100%; margin-top: 30px; }
+    .tech-card { background: #303134; padding: 20px; border-radius: 10px; text-align: center; }
+    .tech-card h4 { margin: 0 0 10px 0; color: #1a73e8; }
+    .tech-card p { margin: 0; font-size: 14px; color: #ccc; }
+
+    .debug-box { margin-top: 40px; background: #000; color: #4af626; padding: 15px; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 13px; width: 100%; max-width: 800px; overflow-x: auto; border: 1px solid #333; }
+    footer { text-align: center; padding: 20px; background: #1a1a1a; color: #888; font-size: 14px; }
+
+    /* =========================================
+       TERMS & PRIVACY MODAL
+       ========================================= */
+    .modal-overlay {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(5px); display: none; justify-content: center; align-items: center; z-index: 2000;
+    }
+    .modal-box {
+        background: white; width: 90%; max-width: 550px; border-radius: 12px; padding: 30px;
+        box-shadow: 0 15px 50px rgba(0,0,0,0.2); display: flex; flex-direction: column;
+        animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    @keyframes popIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    
+    .modal-header { font-size: 22px; font-weight: bold; color: #1a73e8; margin-bottom: 15px; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+    .modal-content { max-height: 250px; overflow-y: auto; padding-right: 15px; font-size: 14px; color: #444; line-height: 1.6; margin-bottom: 20px;}
+    .modal-content::-webkit-scrollbar { width: 8px; }
+    .modal-content::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
+    
+    .checkbox-container { display: flex; flex-direction: column; gap: 12px; background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #ddd;}
+    .checkbox-row { display: flex; align-items: flex-start; gap: 10px; font-size: 14px; color: #333; }
+    .checkbox-row input { margin-top: 4px; cursor: pointer; width: 16px; height: 16px;}
+    .checkbox-row label { cursor: pointer; line-height: 1.4;}
+    
+    .modal-buttons { display: flex; justify-content: flex-end; gap: 15px; margin-top: 20px; }
+    .btn-decline { background: #f1f3f4; color: #5f6368; border: none; padding: 12px 25px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+    .btn-decline:hover { background: #e8eaed; color: #202124; }
+    .btn-accept { background: #1a73e8; color: white; border: none; padding: 12px 25px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+    .btn-accept:hover { background: #1557b0; }
+    .btn-accept:disabled { background: #a0c3ff; cursor: not-allowed; }
+
+    @media (max-width: 768px) {
+        .nav-links { display: none; }
+        .hero-content h1 { font-size: 36px; }
+        .scanner-container { padding: 20px; }
+        section { padding-top: 80px; }
+    }
+</style>
+</head>
+<body>
+
+<nav class="navbar">
+    <a href="#home" class="nav-logo">🛡️ PhishGuard</a>
+    <div class="nav-links">
+        <a href="#home">Home</a>
+        <a href="#history">Your Scans</a>
+        <a href="#guide">How to Use</a>
+        <a href="#policy">Privacy</a>
+        <a href="#about">System</a>
+        <a href="#scanner" class="nav-btn">Start Scanning</a>
+    </div>
+</nav>
+
+<section id="home">
+    <div class="hero-content">
+        <h1>Protect Yourself from<br>SMS Scams & Phishing</h1>
+        <p>PhishGuard uses a dual-layer detection architecture (Primary SVM + Cloud Threat Analysis) and Threat Intelligence databases to instantly detect malicious links, fake promos, and smishing attacks hidden in your text messages.</p>
+        <div class="hero-buttons">
+            <a href="#scanner" class="btn-primary">Try the Scanner</a>
+            <a href="#guide" class="btn-secondary">How it Works</a>
+        </div>
+    </div>
+</section>
+
+<section id="scanner">
+    <h2 class="section-title">Message Analysis Engine</h2>
+    <p class="section-subtitle">Paste a suspicious text message below or upload a screenshot. Our system will analyze the text, extract any URLs, check domain reputation, and classify the threat level.</p>
+    
+    <div class="scanner-container">
+        <div class="input-area" id="dropZone">
+            <textarea id="smsText" placeholder="Type or paste the SMS text here... You can also drag & drop multiple screenshots!"></textarea>
+            
+            <div class="button-group-bottom">
+                <div class="clear-trigger" id="clearTrigger" onclick="clearWorkspace()">🧹 Clear Box</div>
+                <input type="file" id="imageInput" accept="image/*" multiple onchange="handleImageUpload(event)">
+                <div class="upload-trigger" id="uploadTrigger" onclick="document.getElementById('imageInput').click()">📸 Upload Image(s)</div>
+            </div>
+        </div>
+
+        <div id="imageQueueContainer" class="image-queue-container"></div>
+        <button id="scanBtn" class="scan-btn" onclick="checkAgreementAndScan()">SCAN MESSAGES NOW</button>
+        <div id="carouselArea" class="carousel-container" style="display:none; margin-top: 30px;"></div>
+    </div>
+</section>
+
+<!-- LOCAL DEVICE HISTORY SECTION (MOVED UP) -->
+<section id="history">
+    <h2 class="section-title">Your Recent Scans</h2>
+    <p class="section-subtitle">For your privacy, these results are stored locally on your device and are not visible to other users.</p>
+    <div class="history-card">
+        <ul id="historyList"><li style="color: #888; text-align: center;">You haven't scanned any messages on this device yet.</li></ul>
+    </div>
+</section>
+
+<!-- HOW TO USE SECTION (MOVED DOWN) -->
+<section id="guide">
+    <h2 class="section-title">How to Use PhishGuard</h2>
+    <p class="section-subtitle">A simple guide to analyzing your messages.</p>
+    
+    <div class="text-card">
+        <div class="step-box">
+            <div class="step-num">1</div>
+            <div class="step-content">
+                <h4>Input your Message</h4>
+                <p>You can either type/paste the suspicious SMS directly into the text box, or upload a screenshot of the message from your phone. You can also drag and drop images directly into the box.</p>
+            </div>
+        </div>
+        <div class="step-box">
+            <div class="step-num">2</div>
+            <div class="step-content">
+                <h4>Scan & Analyze</h4>
+                <p>Click the "Scan Messages Now" button. The system will extract the text, analyze the keywords, verify any detected links against global phishing databases, and determine the domain's risk level.</p>
+            </div>
+        </div>
+        <div class="step-box">
+            <div class="step-num">3</div>
+            <div class="step-content">
+                <h4>Review the Results</h4>
+                <p>The system will return a classification: <b>SAFE</b>, <b>SPAM</b>, or <b>SCAM</b>. You will also see a detailed explanation of why the message was flagged. If you believe the system made a mistake, you can use the feedback buttons to alert our administrators.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- PRIVACY POLICY SECTION -->
+<section id="policy">
+    <h2 class="section-title">Privacy & Data Policy</h2>
+    <p class="section-subtitle">Transparency in how we handle your information.</p>
+    
+    <div class="text-card policy-content">
+        <p>At PhishGuard, we prioritize the ethical handling of data submitted for analysis. This system is developed primarily for academic research and threat intelligence gathering.</p>
+        
+        <h4>Data Collection</h4>
+        <p>When you submit a text message or image for scanning, the content is securely transmitted to our servers for analysis. We collect the raw text, any extracted URLs, and the final classification label (Safe/Spam/Scam).</p>
+        
+        <h4>How We Use Your Data</h4>
+        <p>The data collected is utilized to improve our local detection models and refine our system's accuracy. System Administrators have access to review submitted logs and user feedback to resolve conflicts (The Conflictor process) and retrain the system. We do not sell your data to third parties.</p>
+        
+        <h4>Sensitive Information Warning</h4>
+        <p>Users are strictly advised <strong>not</strong> to submit messages containing Personal Identifiable Information (PII) such as full names, banking PINs, OTPs, or passwords. PhishGuard is designed to analyze promotional, suspicious, or generic text structures.</p>
+        
+        <h4>Cookies & Local Storage</h4>
+        <p>This website does not use tracking cookies for advertising. We strictly use client-side <code>localStorage</code> to remember your consent preferences and temporarily display your recent scans on your device. This local data is never shared with other users.</p>
+    </div>
+</section>
+
+<section id="about">
+    <h2 class="section-title">System Architecture</h2>
+    <p class="section-subtitle">PhishGuard is built for rigorous academic and practical application, utilizing an Agile methodology to adapt to emerging threats.</p>
+    
+    <div class="tech-grid">
+        <div class="tech-card">
+            <h4>⚙️ Hybrid Detection Engine</h4>
+            <p>Combines a fast, Primary Support Vector Machine (SVM) for immediate filtering with a secondary Cloud Analysis layer for complex threat evaluation.</p>
+        </div>
+        <div class="tech-card">
+            <h4>🌐 Threat Intelligence</h4>
+            <p>Performs real-time URL expansion, WHOIS lookups, and checks against known phishing databases to expose hidden malicious domains.</p>
+        </div>
+        <div class="tech-card">
+            <h4>👁️ Optical Character Recognition</h4>
+            <p>Integrated vision models extract text directly from user-uploaded screenshots, bypassing manual entry errors.</p>
+        </div>
+    </div>
+
+    <div class="debug-box">
+        <b>[SYSTEM LOGS - ADMIN TERMINAL]</b>
+        <div id="debugLog">System Initialized. Engine standing by...</div>
+    </div>
+</section>
+
+<footer>
+    <p>&copy; 2026 PhishGuard Anti-Phishing System. Built for academic research and protection.</p>
+</footer>
+
+<!-- TERMS AND PRIVACY MODAL -->
+<div class="modal-overlay" id="termsModal">
+    <div class="modal-box">
+        <div class="modal-header">Terms of Service & Privacy Agreement</div>
+        <div class="modal-content">
+            <p>Welcome to PhishGuard. By continuing, you agree to our data practices outlined in our <a href="#policy" onclick="document.getElementById('termsModal').style.display='none';">Privacy Policy</a>.</p>
+            <p><strong>Key Points:</strong></p>
+            <ul>
+                <li>Submitted texts and images are saved to our database for threat analysis and system improvement.</li>
+                <li>System Administrators may review your submitted texts to verify system accuracy.</li>
+                <li><strong>Do not</strong> submit messages containing sensitive personal information (passwords, OTPs, credit card numbers).</li>
+                <li>PhishGuard provides automated estimations. Always exercise personal judgment before clicking unknown links.</li>
+            </ul>
+        </div>
+        
+        <div class="checkbox-container">
+            <div class="checkbox-row">
+                <input type="checkbox" id="agreeTerms" onchange="toggleAcceptBtn()">
+                <label for="agreeTerms"><strong>I agree to the Terms of Service and Privacy Policy. (Required)</strong></label>
+            </div>
+            <div class="checkbox-row">
+                <input type="checkbox" id="dontShowAgain">
+                <label for="dontShowAgain">Remember my choice. Don't show this popup again on this browser.</label>
+            </div>
+        </div>
+
+        <div class="modal-buttons">
+            <button class="btn-decline" onclick="declineTerms()">Cancel</button>
+            <button class="btn-accept" id="acceptBtn" disabled onclick="acceptTerms()">I Agree, Start Scan</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// =========================================
+// LOCAL HISTORY LOGIC (PRIVACY FIRST)
+// =========================================
+function loadLocalHistory() {
+    const historyList = document.getElementById("historyList");
+    let localHistory = JSON.parse(localStorage.getItem('phishguard_local_history') || '[]');
+    
+    if (localHistory.length === 0) {
+        historyList.innerHTML = "<li style='color:#888; justify-content:center;'>You haven't scanned any messages on this device yet.</li>";
+        return;
+    }
+
+    historyList.innerHTML = "";
+    localHistory.forEach(item => {
+        const li = document.createElement("li");
+        let icon = item.label.includes("SCAM") ? "🚨" : item.label.includes("SPAM") ? "📧" : "✅";
+        let color = item.label.includes("SCAM") ? "#d93025" : item.label.includes("SPAM") ? "#fbc02d" : "#1e8e3e";
+        
+        li.innerHTML = `<div style="font-size: 20px; min-width: 30px;">${icon}</div> 
+                        <div><strong style="color:${color}">${item.label}</strong><br><span style="color:#666;">${item.text}</span></div>`;
+        historyList.appendChild(li);
+    });
+}
+
+function saveToLocalHistory(label, text) {
+    let localHistory = JSON.parse(localStorage.getItem('phishguard_local_history') || '[]');
+    let shortText = text.length > 80 ? text.substring(0, 80) + "..." : text;
+    
+    // Add new item to the beginning
+    localHistory.unshift({ label: label, text: shortText });
+    
+    // Keep only the last 15 scans to save space
+    if (localHistory.length > 15) {
+        localHistory = localHistory.slice(0, 15);
+    }
+    
+    localStorage.setItem('phishguard_local_history', JSON.stringify(localHistory));
+    loadLocalHistory(); // Refresh the list
+}
+
+// Load local history on startup instead of fetching from server
+document.addEventListener("DOMContentLoaded", loadLocalHistory);
+
+
+// =========================================
+// TERMS & PRIVACY MODAL LOGIC
+// =========================================
+function checkAgreementAndScan() {
+    const rawText = document.getElementById('smsText').value.trim();
+    if (!rawText && imageQueue.length === 0) { 
+        alert("Please enter text or upload an image before scanning."); 
+        return; 
+    }
+
+    if (localStorage.getItem('phishguard_agreed') === 'true') {
+        startMasterProcess(); 
+    } else {
+        document.getElementById('termsModal').style.display = 'flex';
+        document.getElementById('agreeTerms').checked = false;
+        document.getElementById('dontShowAgain').checked = false;
+        toggleAcceptBtn();
+    }
+}
+
+function toggleAcceptBtn() {
+    const isAgreed = document.getElementById('agreeTerms').checked;
+    document.getElementById('acceptBtn').disabled = !isAgreed;
+}
+
+function declineTerms() {
+    document.getElementById('termsModal').style.display = 'none';
+    document.getElementById('debugLog').innerText += '\n> Scan cancelled: User declined Terms of Service.';
+}
+
+function acceptTerms() {
+    const dontShowAgain = document.getElementById('dontShowAgain').checked;
+    if (dontShowAgain) {
+        localStorage.setItem('phishguard_agreed', 'true');
+    }
+    document.getElementById('termsModal').style.display = 'none';
+    startMasterProcess(); 
+}
+
+// =========================================
+// STATE MANAGEMENT & UI LOCKING
+// =========================================
+let isScanning = false;
+let imageQueue = [];
+let scanCompleted = false;
+
+window.addEventListener('beforeunload', function (e) {
+    if (isScanning) {
+        var confirmationMessage = 'A scan is currently in progress. If you leave or refresh this page, the scan will be interrupted.';
+        (e || window.event).returnValue = confirmationMessage;
+        return confirmationMessage;
+    }
+});
+
+function setUIState(scanning) {
+    isScanning = scanning;
+    const textInput = document.getElementById('smsText');
+    const scanBtn = document.getElementById('scanBtn');
+    const clearBtn = document.getElementById('clearTrigger');
+    const uploadBtn = document.getElementById('uploadTrigger');
+
+    if (scanning) {
+        textInput.disabled = true;
+        textInput.style.opacity = '0.6';
+        textInput.style.cursor = 'not-allowed';
+        clearBtn.style.pointerEvents = 'none';
+        clearBtn.style.opacity = '0.5';
+        uploadBtn.style.pointerEvents = 'none';
+        uploadBtn.style.opacity = '0.5';
+        scanBtn.disabled = true;
+        scanBtn.classList.add("loading");
+    } else {
+        textInput.disabled = false;
+        textInput.style.opacity = '1';
+        textInput.style.cursor = 'text';
+        clearBtn.style.pointerEvents = 'auto';
+        clearBtn.style.opacity = '1';
+        uploadBtn.style.pointerEvents = 'auto';
+        uploadBtn.style.opacity = '1';
+        scanBtn.disabled = false;
+        scanBtn.classList.remove("loading");
+        scanBtn.innerText = "SCAN MESSAGES NOW";
+    }
+}
+
+function clearWorkspace() {
+    if(isScanning) return;
+    document.getElementById('smsText').value = ''; 
+    imageQueue = []; 
+    renderQueue(); 
+    document.getElementById('carouselArea').style.display='none'; 
+    document.getElementById('debugLog').innerText='Workspace cleared. Ready.';
+}
+
+// =========================================
+// 1. IMAGE QUEUE LOGIC & AUTO-CLEAR FLAG
+// =========================================
+function autoResetWorkspace() {
+    if (scanCompleted && !isScanning) {
+        document.getElementById('smsText').value = '';
+        document.getElementById('carouselArea').innerHTML = '';
+        document.getElementById('carouselArea').style.display = 'none';
+        scanCompleted = false;
+    }
+}
+
+const dropZone = document.getElementById('dropZone');
+dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', (e) => { e.preventDefault(); dropZone.classList.remove('dragover'); });
+dropZone.addEventListener('drop', (e) => {
+    e.preventDefault(); 
+    dropZone.classList.remove('dragover');
+    if (isScanning) return; 
+    
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        autoResetWorkspace(); 
+        addFilesToQueue(e.dataTransfer.files);
+    }
+});
+
+function handleImageUpload(event) {
+    if (isScanning) return;
+    if (event.target.files && event.target.files.length > 0) {
+        autoResetWorkspace(); 
+        addFilesToQueue(event.target.files);
+    }
+}
+
+document.addEventListener('paste', function (event) {
+    if (isScanning) return;
+    const items = (event.clipboardData || event.originalEvent.clipboardData).items;
+    let files = [];
+    for (let index in items) {
+        const item = items[index];
+        if (item.kind === 'file' && item.type.includes('image/')) {
+            files.push(item.getAsFile());
+        }
+    }
+    if (files.length > 0) {
+        autoResetWorkspace(); 
+        addFilesToQueue(files);
+    }
+});
+
+function addFilesToQueue(files) {
+    for (let i = 0; i < files.length; i++) {
+        if(files[i].size > 5 * 1024 * 1024){
+           alert("⚠️ Image too large (max 5MB). Removed from queue.");
+           continue;
+        }
+        if (files[i].type.startsWith('image/')) {
+            imageQueue.push(files[i]);
+        }
+    }
+    renderQueue();
+}
+
+function renderQueue() {
+    const container = document.getElementById('imageQueueContainer');
+    container.innerHTML = '';
+    imageQueue.forEach((file, index) => {
+        const url = URL.createObjectURL(file);
+        container.innerHTML += `
+            <div class="queue-item">
+                <img src="${url}">
+                <button class="remove-btn" onclick="removeFromQueue(${index})">✕</button>
+            </div>
+        `;
+    });
+}
+
+function removeFromQueue(index) {
+    if(isScanning) return;
+    imageQueue.splice(index, 1);
+    renderQueue();
+}
+
+function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = error => reject(error);
+    });
+}
+
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+// =========================================
+// 2. MASTER SCAN FUNCTION (BATCH PROCESSING)
+// =========================================
+async function startMasterProcess() {
+    const log = document.getElementById('debugLog');
+    
+    if(isScanning) return; 
+
+    setUIState(true); 
+
+    document.getElementById('carouselArea').innerHTML = ""; 
+    document.getElementById('carouselArea').style.display = "flex";
+
+    if (imageQueue.length > 0) {
+        document.getElementById('scanBtn').innerText = `👁️ READING ${imageQueue.length} IMAGES...`;
+        log.innerText = `> Sending ${imageQueue.length} images to OCR System...`;
+
+        let extractedTexts = [];
+        for (let i = 0; i < imageQueue.length; i++) {
+            try {
+                let base64Str = await fileToBase64(imageQueue[i]);
+                const res = await fetch('https://shawntezinzi.pythonanywhere.com/core/scan_image', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ image: base64Str })
+                });
+                const data = await res.json();
+                if(data.status === "success") {
+                    extractedTexts.push(data.extracted_text);
+                    log.innerText += `\n> Image ${i+1} Text Extracted.`;
+                } else {
+                    log.innerText += `\n❌ Image ${i+1} OCR Error: ` + data.message;
+                }
+            } catch(err) {
+                log.innerText += `\n❌ Image ${i+1} Error: ` + err.message;
+            }
+            await sleep(1000); 
+        }
+
+        if (extractedTexts.length > 0) {
+            let currentText = document.getElementById('smsText').value.trim();
+            let newText = extractedTexts.join("\n\n==========\n\n");
+            document.getElementById('smsText').value = currentText ? currentText + "\n\n==========\n\n" + newText : newText;
+        }
+
+        imageQueue = []; 
+        renderQueue(); 
+    }
+
+    await startBatchTextScan();
+}
+
+async function startBatchTextScan() {
+    const scanBtn = document.getElementById('scanBtn');
+    const carouselArea = document.getElementById('carouselArea');
+    const log = document.getElementById('debugLog');
+
+    const rawText = document.getElementById('smsText').value.trim();
+    if (!rawText) { 
+        setUIState(false); 
+        return; 
+    }
+
+    let messages = rawText.split(/==========+/).map(t => t.trim()).filter(t => t.length > 0);
+
+    scanBtn.innerText = "⏳ SYSTEM IS ANALYZING...";
+    log.innerText += `\n> Found ${messages.length} messages to scan.`;
+
+    for (let i = 0; i < messages.length; i++) {
+        let msg = messages[i];
+        let cardId = `card_${i}`;
+        
+        carouselArea.innerHTML += `
+            <div id="${cardId}" class="result-section unknown">
+                <h3 class="status-label">⏳ Scanning ${i+1}/${messages.length}...</h3>
+                <div class="preview-text">${msg.substring(0, 100)}...</div>
+            </div>
+        `;
+
+        try {
+            const res = await fetch(`https://shawntezinzi.pythonanywhere.com/core/scan`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: msg })
+            });
+            let rawData = await res.json();
+            
+            if(rawData.error) throw new Error(rawData.error);
+
+            let data = rawData.results && rawData.results.length > 0 ? rawData.results[0] : rawData;
+            
+            updateCard(cardId, data, msg);
+            
+            // SAVE TO LOCAL HISTORY (Client-Side Privacy)
+            saveToLocalHistory((data.predicted || "UNKNOWN").toUpperCase(), msg);
+            
+            log.innerText += `\n> Scan ${i+1} completed.`;
+
+        } catch (err) {
+            document.getElementById(cardId).innerHTML = `<h3 class="status-label" style="color:#d93025;">❌ Error</h3><p>${err.message}</p>`;
+            log.innerText += `\n> Scan ${i+1} Error: ${err.message}`;
+        }
+
+        if (i < messages.length - 1) {
+            await sleep(2500); 
+        }
+    }
+
+    setUIState(false); 
+    scanCompleted = true;
+}
+
+function updateCard(cardId, data, originalText) {
+    const card = document.getElementById(cardId);
+    let cardClass = "unknown";
+    let icon = "⚠️ UNKNOWN";
+    
+    const pred = (data.predicted || "").toUpperCase();
+    if (pred.includes("SCAM") || pred.includes("SMISHING")) { cardClass = "scam"; icon = "🚨 SCAM"; }
+    else if (pred.includes("SPAM")) { cardClass = "spam"; icon = "📧 SPAM"; }
+    else if (pred.includes("SAFE") || pred.includes("HAM")) { cardClass = "safe"; icon = "✅ SAFE"; }
+
+    let sourceStr = data.decision_source || "UNKNOWN";
+    let confHtml = '';
+
+    if (sourceStr === "INPUT FILTER") {
+        confHtml = `<p style="margin-bottom: 2px; font-size:14px;"><b>📊 Confidence Level:</b> N/A (Filtered)</p>
+                    <div class="confidence-bar"><div style="height:100%; width:0%; background:#5f6368;"></div></div>`;
+    } else if (sourceStr === "GEMINI AI" || sourceStr.includes("CLOUD")) {
+        confHtml = `<p style="margin-bottom: 2px; font-size:14px;"><b>📊 Confidence Level:</b> N/A (Cloud Evaluation)</p>
+                    <div class="confidence-bar"><div style="height:100%; width:0%; background:#1a73e8;"></div></div>`;
+    } else {
+        let confPercent = data.confidence ? (parseFloat(data.confidence) * 100).toFixed(2) : 0;
+        let bg = confPercent > 75 ? "#1e8e3e" : "#fbbc05";
+        confHtml = `<p style="margin-bottom: 2px; font-size:14px;"><b>📊 Confidence Level:</b> ${confPercent}%</p>
+                    <div class="confidence-bar"><div style="height:100%; width:${confPercent}%; background:${bg};"></div></div>`;
+    }
+
+    let detectedLinkHtml = '';
+    if (data.original_url) {
+        let linkDisplay = `<a href="${data.original_url}" target="_blank" style="color:#1a73e8; font-weight:600; word-wrap:break-word;">${data.original_url}</a>`;
+        
+        let detailsBox = `<div class="link-details">`;
+        let ageStr = (data.domain_age_days && data.domain_age_days > 0) ? data.domain_age_days + ' days' : 'Protected / Hidden';
+        detailsBox += `<span><b>📅 Domain Age:</b> ${ageStr}</span>`;
+        let regStr = (data.registrar && data.registrar !== "None" && data.registrar !== "Unknown" && data.registrar !== "") ? data.registrar : 'Protected / Hidden';
+        detailsBox += `<span><b>🏢 Registrar:</b> ${regStr}</span>`;
+        let ipStr = (data.dns_ip && data.dns_ip !== "None" && data.dns_ip !== "") ? data.dns_ip : 'Protected / Firewall';
+        detailsBox += `<span><b>🌐 Server IP:</b> ${ipStr}</span>`;
+        let dbHit = (data.phishing_db == 1) ? "<b style='color:#d93025'>YES (Blacklisted)</b>" : "No";
+        detailsBox += `<span><b>🏴‍☠️ In Phishing DB:</b> ${dbHit}</span>`;
+        detailsBox += `</div>`;
+        
+        detectedLinkHtml = `<div class="verified-link"><b>🔗 Detected Link:</b><br>${linkDisplay} ${detailsBox}</div>`;
+    }
+
+    card.className = `result-section ${cardClass}`;
+    let descriptionText = data.description || "Unknown status";
+
+    card.innerHTML = `
+        <h3 class="status-label">${icon}</h3>
+        <p style="font-style: italic; color: #555; margin-bottom: 15px; font-size: 15px;">${descriptionText}</p>
+        <div class="preview-text">"${originalText.substring(0, 100)}..."</div>
+        
+        ${detectedLinkHtml}
+        
+        <p style="font-size:14px; margin-bottom:5px;"><b>⚖️ Source:</b> <span style="color:#1a73e8; font-weight:600;">${sourceStr.replace("GEMINI AI", "CLOUD ANALYSIS").replace("CLOUD AI BATCH", "CLOUD BATCH ANALYSIS").replace("CLOUD AI SINGLE", "CLOUD ANALYSIS")}</span></p>
+        <p style="font-size:14px; margin-bottom:8px;"><b>🔍 Local SVM:</b> <span>${data.svm_result || "N/A"}</span></p>
+        ${confHtml}
+        
+        <hr style="border: 0; border-top: 1px solid #eaeaea; margin: 20px 0;">
+        <p style="font-size:14px; margin-bottom: 5px;"><b>🧠 Analysis Explanation:</b></p>
+        <div style="font-style: italic; line-height: 1.5; color:#444; font-size:13px; max-height:120px; overflow-y:auto; padding-right:5px;">${data.ai_expert_advice ? data.ai_expert_advice.replace("The AI", "The system") : "The system provided no explanation."}</div>
+
+        <div class="feedback-container" id="fb_wrap_${data.row_id}" ${sourceStr === "INPUT FILTER" ? 'style="display:none;"' : ''}>
+            <p style="margin: 0 0 10px 0; font-size: 14px; font-weight: 600; color:#333;">Is this classification correct?</p>
+            <div class="feedback-btns">
+                <button class="btn-yes" onclick="submitFeedback('${data.row_id}', true, '${pred}')">👍 Yes</button>
+                <button class="btn-no" onclick="document.getElementById('fb_correct_${data.row_id}').style.display='block'; this.parentElement.style.display='none';">👎 No</button>
+            </div>
+            
+            <div id="fb_correct_${data.row_id}" style="display:none; margin-top: 15px;">
+                <label style="font-size: 13px; font-weight: 600; color:#555;">What should be the correct category?</label>
+                <select id="select_${data.row_id}">
+                    <option value="SAFE">✅ SAFE (Legitimate message)</option>
+                    <option value="SCAM">🚨 SCAM (Phishing / Dangerous)</option>
+                    <option value="SPAM">📧 SPAM (Promotional / Unwanted)</option>
+                </select>
+                <button class="btn-submit-type" onclick="submitFeedback('${data.row_id}', false, '${pred}')">Save Fix</button>
+            </div>
+        </div>
+        <div id="fb_success_${data.row_id}" style="display:none; margin-top: 20px; color: #1e8e3e; font-weight: bold; text-align: center; font-size: 14px; background: #e6f4ea; padding: 10px; border-radius: 6px;">✅ Feedback Saved to Conflictor!</div>
+    `;
+}
+
+async function submitFeedback(rowId, isCorrect, predictedLabel) {
+    let final_label = isCorrect ? predictedLabel : document.getElementById(`select_${rowId}`).value;
+    document.getElementById(`fb_wrap_${rowId}`).style.display = "none";
+    document.getElementById(`fb_success_${rowId}`).style.display = "block";
+
+    try {
+        await fetch('https://shawntezinzi.pythonanywhere.com/core/feedback', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ row_id: rowId, correct: isCorrect, type: final_label })
+        });
+        document.getElementById('debugLog').innerText += `\n> Feedback for row ${rowId} sent to Admin Conflictor.`;
+    } catch(err){
+        alert("❌ Error saving feedback.");
+    }
+}
+</script>
+</body>
+</html>
