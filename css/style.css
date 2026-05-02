@@ -171,9 +171,88 @@ footer { text-align: center; padding: 20px; background: #1a1a1a; color: #888; fo
 .btn-accept:hover { background: #1557b0; }
 .btn-accept:disabled { background: #a0c3ff; cursor: not-allowed; }
 
+/* =========================================
+   MOBILE RESPONSIVENESS (SMARTPHONES & TABLETS)
+   ========================================= */
 @media (max-width: 768px) {
-    .nav-links { display: none; }
-    .hero-content h1 { font-size: 36px; }
+    /* 1. Navbar: Stack logo and links */
+    .navbar { 
+        padding: 15px 20px; 
+        flex-direction: column; 
+        gap: 15px; 
+    }
+    .nav-links { 
+        display: flex; 
+        flex-wrap: wrap; 
+        justify-content: center; 
+        gap: 10px; 
+        width: 100%; 
+    }
+    .nav-links a { font-size: 13px; }
+    .nav-btn { padding: 6px 15px; font-size: 13px; }
+
+    /* 2. Hero Section: Shrink text and stack buttons */
+    .hero-content h1 { font-size: 32px; }
+    .hero-content p { font-size: 16px; }
+    .hero-buttons { 
+        flex-direction: column; 
+        width: 100%; 
+        padding: 0 20px; 
+    }
+    .hero-buttons a { width: 100%; text-align: center; }
+
+    /* 3. Global Sections */
+    .section-title { font-size: 26px; }
+    section { 
+        padding: 130px 15px 50px 15px; /* Extra top padding for the bigger navbar */
+        min-height: auto; 
+    }
+
+    /* 4. Scanner Container */
     .scanner-container { padding: 20px; }
-    section { padding-top: 80px; }
+    .input-area textarea { 
+        font-size: 14px; 
+        height: 150px; 
+        padding-bottom: 20px; 
+    }
+    
+    /* Move clear/upload buttons below the text area */
+    .button-group-bottom { 
+        position: static; 
+        flex-direction: column; 
+        gap: 10px; 
+        margin-top: 15px; 
+        padding: 0; 
+        pointer-events: auto; 
+    }
+    .clear-trigger, .upload-trigger { 
+        width: 100%; 
+        text-align: center; 
+        padding: 12px;
+    }
+
+    /* 5. Carousel Cards: Shrink to fit phone screens */
+    .result-section { 
+        flex: 0 0 90%; 
+        max-width: 90%; 
+    }
+
+    /* 6. Guide Steps & History */
+    .step-box { 
+        flex-direction: column; 
+        gap: 10px; 
+        text-align: center; 
+        align-items: center; 
+    }
+    .history-card, .text-card { padding: 20px; }
+    #historyList li { 
+        flex-direction: column; 
+        text-align: center; 
+        align-items: center; 
+    }
+
+    /* 7. Modal (Terms & Privacy) */
+    .modal-box { padding: 20px; width: 95%; }
+    .modal-buttons { flex-direction: column; }
+    .modal-buttons button { width: 100%; }
 }
