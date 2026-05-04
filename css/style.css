@@ -82,7 +82,23 @@ input[type="file"] { display: none; }
 .carousel-container::-webkit-scrollbar-thumb { background: #1a73e8; border-radius: 10px; }
 .carousel-container::-webkit-scrollbar-track { background: #e0e0e0; border-radius: 10px; }
 
-.result-section { flex: 0 0 380px; max-width: 380px; scroll-snap-align: start; padding: 25px; border-radius: 12px; display: inline-block; animation: fadeIn 0.5s; border: 1px solid #eaeaea; box-shadow: 0 5px 15px rgba(0,0,0,0.05); background: white; }
+.result-section { 
+    flex: 0 0 380px; 
+    max-width: 380px; 
+    scroll-snap-align: start; 
+    padding: 25px; 
+    border-radius: 12px; 
+    
+    /* Forces the cards to be equal height */
+    display: flex; 
+    flex-direction: column; 
+    align-items: stretch;
+    
+    animation: fadeIn 0.5s; 
+    border: 1px solid #eaeaea; 
+    box-shadow: 0 5px 15px rgba(0,0,0,0.05); 
+    background: white; 
+}
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
 .scam { border-top: 6px solid #d93025; }
@@ -98,7 +114,12 @@ input[type="file"] { display: none; }
 .link-details span { display: block; margin-bottom: 4px; }
 .confidence-bar{ height:10px; background:#ddd; border-radius:6px; overflow:hidden; margin-top: 8px; }
 
-.feedback-container { margin-top: 25px; padding-top: 20px; border-top: 1px solid #eee; }
+.feedback-container { 
+    /* Pushes the buttons to the bottom of the card */
+    margin-top: auto; 
+    padding-top: 20px; 
+    border-top: 1px solid #eee; 
+}
 .feedback-btns { display: flex; gap: 10px; margin-top: 10px; }
 .btn-yes { background: #1e8e3e; color: white; border: none; padding: 10px; border-radius: 6px; flex: 1; cursor: pointer; font-weight: 600; transition: 0.2s;}
 .btn-yes:hover { background: #146c2e; }
@@ -204,7 +225,7 @@ footer { text-align: center; padding: 20px; background: #1a1a1a; color: #888; fo
     /* 3. Global Sections */
     .section-title { font-size: 26px; }
     section { 
-        padding: 130px 15px 50px 15px; /* Extra top padding for the bigger navbar */
+        padding: 130px 15px 50px 15px; 
         min-height: auto; 
     }
 
