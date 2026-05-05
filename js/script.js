@@ -368,8 +368,12 @@ function updateCard(cardId, data, originalText) {
         detailsBox += `<span><b>🏢 Registrar:</b> ${regStr}</span>`;
         let ipStr = (data.dns_ip && data.dns_ip !== "None" && data.dns_ip !== "") ? data.dns_ip : 'Protected / Firewall';
         detailsBox += `<span><b>🌐 Server IP:</b> ${ipStr}</span>`;
+        
+        // --- VISUAL UI FIX IS HERE ---
         let dbHit = (data.phishing_db == 1) ? "<b style='color:#d93025'>YES (Blacklisted)</b>" : "No";
-        detailsBox += `<span><b>🏴‍☠️ In Phishing DB:</b> ${dbHit}</span>`;
+        detailsBox += `<span><b>🏴‍☠️ In PhishTank:</b> ${dbHit}</span>`;
+        // -----------------------------
+        
         detailsBox += `</div>`;
         
         detectedLinkHtml = `<div class="verified-link"><b>🔗 Detected Link:</b><br>${linkDisplay} ${detailsBox}</div>`;
