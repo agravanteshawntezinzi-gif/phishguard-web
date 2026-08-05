@@ -10,6 +10,161 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
 <!-- External CSS -->
 <link rel="stylesheet" href="css/style.css">
+<style>
+/* Inline styling for Download Section & Modal to ensure zero setup issues */
+.download-table-container {
+    max-width: 1000px;
+    margin: 0 auto;
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+    padding: 20px;
+}
+
+.apk-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+.apk-table th, .apk-table td {
+    padding: 14px 18px;
+    border-bottom: 1px solid #eee;
+}
+
+.apk-table th {
+    background-color: #f8fafc;
+    color: #334155;
+    font-weight: 600;
+}
+
+.apk-link {
+    color: #2563eb;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.apk-link:hover {
+    text-decoration: underline;
+}
+
+.btn-download-trigger {
+    background-color: #2563eb;
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-download-trigger:hover {
+    background-color: #1d4ed8;
+}
+
+/* Modal Styling */
+.download-modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.65);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    backdrop-filter: blur(4px);
+}
+
+.download-modal-card {
+    background: #ffffff;
+    width: 90%;
+    max-width: 600px;
+    border-radius: 12px;
+    padding: 25px;
+    position: relative;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+
+.download-modal-header {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 15px;
+    border-bottom: 2px solid #f1f5f9;
+    padding-bottom: 10px;
+}
+
+.timer-box {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    color: #1e40af;
+    padding: 15px;
+    border-radius: 8px;
+    text-align: center;
+    font-weight: 600;
+    margin-bottom: 20px;
+}
+
+.timer-count {
+    font-size: 1.5rem;
+    color: #2563eb;
+    font-weight: 700;
+}
+
+.app-info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 15px;
+    font-size: 0.9rem;
+    color: #475569;
+}
+
+.app-features-list {
+    background: #f8fafc;
+    padding: 12px 20px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    font-size: 0.88rem;
+    color: #334155;
+}
+
+.app-features-list ul {
+    margin-top: 5px;
+    padding-left: 20px;
+}
+
+.manual-download-text {
+    text-align: center;
+    font-size: 0.9rem;
+    color: #64748b;
+    margin-top: 15px;
+}
+
+.manual-download-text a {
+    color: #2563eb;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.manual-download-text a:hover {
+    text-decoration: underline;
+}
+
+.modal-close-btn {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: #94a3b8;
+    cursor: pointer;
+}
+</style>
 </head>
 <body>
 
@@ -21,6 +176,7 @@
     <div class="nav-links">
         <a href="#home">Home</a>
         <a href="#history">Your Scans</a>
+        <a href="#download">Download App</a>
         <a href="#guide">How to Use</a>
         <a href="#policy">Privacy</a>
         <a href="#about">System</a>
@@ -34,7 +190,7 @@
         <p>PhishGuard uses a dual-layer detection architecture (Primary SVM + Cloud Threat Analysis) and Threat Intelligence databases to instantly detect malicious links, fake promos, and smishing attacks hidden in your text messages.</p>
         <div class="hero-buttons">
             <a href="#scanner" class="btn-primary">Try the Scanner</a>
-            <a href="#guide" class="btn-secondary">How it Works</a>
+            <a href="#download" class="btn-secondary">Get Mobile App</a>
         </div>
     </div>
 </section>
@@ -57,6 +213,34 @@
         <div id="imageQueueContainer" class="image-queue-container"></div>
         <button id="scanBtn" class="scan-btn" onclick="checkAgreementAndScan()">SCAN MESSAGES NOW</button>
         <div id="carouselArea" class="carousel-container" style="display:none; margin-top: 30px;"></div>
+    </div>
+</section>
+
+<!-- DOWNLOAD MOBILE APP SECTION -->
+<section id="download">
+    <h2 class="section-title">Download PhishGuard App</h2>
+    <p class="section-subtitle">Get real-time SMS protection directly on your Android smartphone.</p>
+    
+    <div class="download-table-container">
+        <table class="apk-table">
+            <thead>
+                <tr>
+                    <th>Application</th>
+                    <th>Version</th>
+                    <th>Size</th>
+                    <th>Release Date</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="appTableBody">
+                <!-- If no apps are uploaded, this placeholder row shows -->
+                <tr id="emptyAppRow">
+                    <td colspan="5" style="text-align: center; color: #94a3b8; padding: 25px;">
+                        No mobile application releases available yet.
+                    </td>
+                </tr>
+            </tbody>
+        </table>
     </div>
 </section>
 
@@ -146,6 +330,38 @@
     <p>&copy; 2026 PhishGuard Anti-Phishing System. Built for academic research and protection.</p>
 </footer>
 
+<!-- DOWNLOAD COUNTDOWN & DETAILS MODAL -->
+<div class="download-modal-overlay" id="downloadModal">
+    <div class="download-modal-card">
+        <button class="modal-close-btn" onclick="closeDownloadModal()">&times;</button>
+        <div class="download-modal-header" id="modalAppName">PhishGuard Mobile Security</div>
+        
+        <div class="timer-box">
+            Your download will begin automatically in <span class="timer-count" id="downloadTimer">10</span> seconds...
+        </div>
+
+        <div class="app-info-grid">
+            <div><strong>Version:</strong> <span id="modalAppVersion">1.0.0</span></div>
+            <div><strong>Developer:</strong> <span id="modalAppAuthor">PhishGuard Team</span></div>
+            <div><strong>File Size:</strong> <span id="modalAppSize">15.4 MB</span></div>
+            <div><strong>Requirement:</strong> Android 7.0+</div>
+        </div>
+
+        <div class="app-features-list">
+            <strong>Key Features:</strong>
+            <ul id="modalAppFeatures">
+                <li>Real-time SMS Smishing & Phishing link scanner.</li>
+                <li>Offline Machine Learning classification engine.</li>
+                <li>One-tap threat reporting to system administrators.</li>
+            </ul>
+        </div>
+
+        <div class="manual-download-text">
+            App didn't download? <a id="manualDownloadLink" href="#" download>Click here again</a>
+        </div>
+    </div>
+</div>
+
 <!-- TERMS AND PRIVACY MODAL -->
 <div class="modal-overlay" id="termsModal">
     <div class="modal-box">
@@ -181,5 +397,107 @@
 
 <!-- External JS -->
 <script src="js/script.js"></script>
+
+<!-- Download Modal Logic Script -->
+<script>
+let downloadInterval = null;
+
+// Demo App Data structure (This will pull dynamically when you add the Admin Upload later)
+const availableApps = [
+    {
+        id: 1,
+        name: "PhishGuard Mobile App",
+        version: "v1.0.0-Beta",
+        size: "14.2 MB",
+        date: "2026-08-01",
+        author: "PhishGuard Dev Team",
+        filename: "PhishGuard_v1.0.0.apk",
+        filePath: "app/PhishGuard_v1.0.0.apk",
+        features: [
+            "Instant SMS link scanner",
+            "Support Vector Machine threat detection",
+            "Direct synchronization with PhishGuard Web"
+        ]
+    }
+];
+
+function renderAppTable() {
+    const tbody = document.getElementById('appTableBody');
+    if (!tbody) return;
+
+    if (availableApps.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="5" style="text-align: center; color: #94a3b8; padding: 25px;">
+                    No mobile application releases available yet.
+                </td>
+            </tr>`;
+        return;
+    }
+
+    tbody.innerHTML = '';
+    availableApps.forEach(app => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>
+                <span class="apk-link" onclick="openDownloadModal(${app.id})">${app.name}</span>
+            </td>
+            <td><span class="apk-link" onclick="openDownloadModal(${app.id})">${app.version}</span></td>
+            <td>${app.size}</td>
+            <td>${app.date}</td>
+            <td>
+                <button class="btn-download-trigger" onclick="openDownloadModal(${app.id})">Download</button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function openDownloadModal(appId) {
+    const app = availableApps.find(a => a.id === appId);
+    if (!app) return;
+
+    document.getElementById('modalAppName').innerText = app.name;
+    document.getElementById('modalAppVersion').innerText = app.version;
+    document.getElementById('modalAppAuthor').innerText = app.author;
+    document.getElementById('modalAppSize').innerText = app.size;
+
+    const featureList = document.getElementById('modalAppFeatures');
+    featureList.innerHTML = app.features.map(f => `<li>${f}</li>`).join('');
+
+    const manualLink = document.getElementById('manualDownloadLink');
+    manualLink.href = app.filePath;
+    manualLink.setAttribute('download', app.filename);
+
+    const modal = document.getElementById('downloadModal');
+    modal.style.display = 'flex';
+
+    // 10 Second Countdown Timer
+    let timeLeft = 10;
+    const timerDisplay = document.getElementById('downloadTimer');
+    timerDisplay.innerText = timeLeft;
+
+    clearInterval(downloadInterval);
+    downloadInterval = setInterval(() => {
+        timeLeft--;
+        timerDisplay.innerText = timeLeft;
+
+        if (timeLeft <= 0) {
+            clearInterval(downloadInterval);
+            // Trigger automatic download
+            manualLink.click();
+        }
+    }, 1000);
+}
+
+function closeDownloadModal() {
+    clearInterval(downloadInterval);
+    document.getElementById('downloadModal').style.display = 'none';
+}
+
+// Initial Render
+document.addEventListener('DOMContentLoaded', renderAppTable);
+</script>
+
 </body>
 </html>
