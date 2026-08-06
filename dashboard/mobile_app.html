@@ -10,7 +10,7 @@
 <script src="js/lock.js"></script>
 
 <style>
-    /* GLOBAL & SIDEBAR (Matches your existing admin style) */
+    /* GLOBAL & SIDEBAR */
     :root { --primary: #1a73e8; --sidebar: #1e1e2d; --bg-light: #f4f7fe; --safe: #1e8e3e; --spam: #fbc02d; --scam: #d93025; --text-muted: #888; }
     body { margin: 0; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: var(--bg-light); color: #333; display: flex; height: 100vh; overflow: hidden;}
     .sidebar { width: 260px; background: var(--sidebar); color: white; display: flex; flex-direction: column; padding-top: 20px; box-shadow: 2px 0 10px rgba(0,0,0,0.1); z-index: 100;}
@@ -43,6 +43,10 @@
     .form-group textarea { resize: vertical; height: 80px; }
     .btn-action { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; margin-top: 10px; font-size: 15px;}
     .btn-action:hover { background: #1557b0; }
+    .btn-action:disabled { background: #ccc; cursor: not-allowed; }
+
+    /* AUTO VERSION DISPLAY */
+    .auto-version-box { background: #e8f0fe; border: 1px solid #1a73e8; color: #1a73e8; padding: 12px; border-radius: 6px; font-size: 16px; font-weight: bold; text-align: center; margin-bottom: 15px;}
 
     /* APP LIST (RIGHT) */
     .app-list-view { flex: 2; display: flex; flex-direction: column; min-height: 500px;}
@@ -57,7 +61,7 @@
     .btn-delete { background: #fee6e6; color: var(--scam); border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s;}
     .btn-delete:hover { background: var(--scam); color: white;}
 
-    .github-notice { background: #fff8e1; border-left: 4px solid var(--spam); padding: 15px; border-radius: 8px; font-size: 13px; color: #555; margin-bottom: 20px;}
+    .github-notice { background: #e8f5e9; border-left: 4px solid var(--safe); padding: 15px; border-radius: 8px; font-size: 13px; color: #1e8e3e; margin-bottom: 20px; font-weight: 600;}
 </style>
 </head>
 <body>
@@ -80,48 +84,28 @@
         <div class="header-controls">
             <div>
                 <h2>Mobile App Releases</h2>
-                <p>Manage APK versions, requirements, and update notes for public download.</p>
+                <p>Manage APK versions, requirements, and auto-deploy directly to GitHub.</p>
             </div>
         </div>
 
         <div class="layout-wrapper">
             <!-- UPLOAD FORM -->
             <div class="panel control-panel">
-                <h3>🚀 Publish New Version</h3>
+                <h3>🚀 Auto-Deploy to GitHub</h3>
                 
                 <div class="form-group">
-                    <label>App Name</label>
-                    <input type="text" id="appName" value="PhishGuard Mobile Security">
+                    <label>GitHub Personal Access Token (Required for Auto-Upload)</label>
+                    <input type="password" id="ghToken" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx">
                 </div>
 
-                <div style="display: flex; gap: 10px;">
-                    <div class="form-group" style="flex: 2;">
-                        <label>Version Number</label>
-                        <input type="text" id="appVersion" placeholder="e.g., 1.0.0">
-                    </div>
-                    <div class="form-group" style="flex: 1.5;">
-                        <label>Stage</label>
-                        <select id="appStage">
-                            <option value="Alpha">Alpha</option>
-                            <option value="Beta">Beta</option>
-                            <option value="Stable">Stable</option>
-                        </select>
-                    </div>
+                <div class="auto-version-box">
+                    Next Auto-Version:<br>
+                    <span id="displayVersion">Calculating...</span>
                 </div>
 
                 <div class="form-group">
-                    <label>Select APK File (Calculates Size & Filename)</label>
+                    <label>Select APK File</label>
                     <input type="file" id="apkFile" accept=".apk">
-                </div>
-
-                <div class="form-group">
-                    <label>Developer / Author</label>
-                    <input type="text" id="appAuthor" value="PhishGuard Dev Team">
-                </div>
-
-                <div class="form-group">
-                    <label>System Requirement</label>
-                    <input type="text" id="appReq" value="Android 7.0+">
                 </div>
 
                 <div class="form-group">
@@ -129,13 +113,13 @@
                     <textarea id="appFeatures" placeholder="Added instant scanner&#10;Fixed OCR bugs&#10;Improved UI design"></textarea>
                 </div>
 
-                <button class="btn-action" onclick="publishApp()">PUBLISH RELEASE</button>
+                <button class="btn-action" id="publishBtn" onclick="publishApp()">UPLOAD & PUBLISH</button>
             </div>
 
             <!-- APPS LIST -->
             <div class="panel app-list-view">
                 <div class="github-notice">
-                    <strong>⚠️ Important Hosting Notice:</strong> Publishing here updates the Database and Website UI. However, because the site is hosted on GitHub, you must still manually upload the actual <code>.apk</code> file into your GitHub <code>app/</code> folder with the exact filename shown below for the download to work!
+                    ✨ Lazy Upload Active: Entering your GitHub token allows this page to automatically push the `.apk` file directly to your <code>app/</code> folder on GitHub! No more manual uploading!
                 </div>
                 
                 <h3>📦 Current Uploaded Releases</h3>
@@ -147,8 +131,10 @@
     </div>
 
 <script>
-    // Load apps from localStorage on page load
-    document.addEventListener("DOMContentLoaded", renderAppList);
+    document.addEventListener("DOMContentLoaded", () => {
+        renderAppList();
+        updateAutoVersionDisplay();
+    });
 
     function formatBytes(bytes, decimals = 2) {
         if (bytes === 0) return '0 Bytes';
@@ -159,58 +145,131 @@
         return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
     }
 
-    function publishApp() {
-        const name = document.getElementById('appName').value.trim();
-        const ver = document.getElementById('appVersion').value.trim();
-        const stage = document.getElementById('appStage').value;
-        const author = document.getElementById('appAuthor').value.trim();
-        const req = document.getElementById('appReq').value.trim();
-        const featuresRaw = document.getElementById('appFeatures').value.trim();
-        const fileInput = document.getElementById('apkFile');
+    // AUTO-VERSION LOGIC
+    function calculateNextVersion() {
+        let apps = JSON.parse(localStorage.getItem('pg_mobile_apps')) || [];
+        if (apps.length === 0) return "v1.0.0-Alpha";
+        
+        let lastFull = apps[0].version; // Example: "v1.0.0-Alpha"
+        let match = lastFull.match(/v(\d+)\.(\d+)\.(\d+)-(Alpha|Beta|Stable)/);
+        
+        if (!match) return "v1.0.0-Alpha";
 
-        if (!ver) { alert("Please provide a Version Number!"); return; }
-        if (!fileInput.files.length) { alert("Please select an APK file so the system can calculate its size!"); return; }
+        let major = parseInt(match[1]);
+        let minor = parseInt(match[2]);
+        let patch = parseInt(match[3]);
+        let stage = match[4];
+
+        if (stage === "Alpha") return `v${major}.${minor}.${patch}-Beta`;
+        if (stage === "Beta") return `v${major}.${minor}.${patch}-Stable`;
+        if (stage === "Stable") return `v${major}.${minor}.${patch + 1}-Alpha`;
+        
+        return "v1.0.0-Alpha";
+    }
+
+    function updateAutoVersionDisplay() {
+        document.getElementById('displayVersion').innerText = calculateNextVersion();
+    }
+
+    // READ FILE AS BASE64
+    function getBase64(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result.split(',')[1]); // Removes the data URL prefix
+            reader.onerror = error => reject(error);
+        });
+    }
+
+    // THE GITHUB UPLOAD MAGIC
+    async function publishApp() {
+        const token = document.getElementById('ghToken').value.trim();
+        const fileInput = document.getElementById('apkFile');
+        const featuresRaw = document.getElementById('appFeatures').value.trim();
+        const publishBtn = document.getElementById('publishBtn');
+
+        if (!token) { alert("Please paste your GitHub Personal Access Token to auto-upload!"); return; }
+        if (!fileInput.files.length) { alert("Please select an APK file to upload!"); return; }
+
+        publishBtn.innerText = "⏳ UPLOADING TO GITHUB...";
+        publishBtn.disabled = true;
 
         const file = fileInput.files[0];
-        const fileSize = formatBytes(file.size);
-        const fileName = file.name;
-        
-        // Convert features textarea into an array of strings
-        const featuresArray = featuresRaw.split('\n').filter(f => f.trim() !== '');
+        const nextVersion = calculateNextVersion();
+        const fileName = `PhishGuard_${nextVersion}.apk`.replace(/-/g, '_'); // Safe filename
 
-        const newApp = {
-            id: Date.now(),
-            name: name,
-            version: `v${ver}-${stage}`,
-            size: fileSize,
-            date: new Date().toISOString().split('T')[0], // YYYY-MM-DD
-            author: author,
-            requirement: req,
-            filename: fileName,
-            filePath: `app/${fileName}`,
-            features: featuresArray.length > 0 ? featuresArray : ["Standard release"]
-        };
+        try {
+            // Convert APK to base64
+            const base64Content = await getBase64(file);
 
-        let apps = JSON.parse(localStorage.getItem('pg_mobile_apps')) || [];
-        // Add new app to the top of the array
-        apps.unshift(newApp);
-        localStorage.setItem('pg_mobile_apps', JSON.stringify(apps));
+            // GitHub API Details
+            const repo = "agravanteshawntezinzi-gif/phishguard-web";
+            const path = `app/${fileName}`;
+            const url = `https://api.github.com/repos/${repo}/contents/${path}`;
 
-        // Reset form
-        document.getElementById('appVersion').value = '';
-        document.getElementById('appFeatures').value = '';
-        fileInput.value = '';
+            const body = {
+                message: `Auto-Uploaded ${nextVersion} via PhishGuard Dashboard`,
+                content: base64Content,
+                branch: "main"
+            };
 
-        alert(`Success! Version ${newApp.version} published.\n\nDon't forget to upload ${fileName} to your GitHub 'app' folder!`);
-        renderAppList();
+            // Push to GitHub
+            const response = await fetch(url, {
+                method: "PUT",
+                headers: {
+                    "Authorization": `Bearer ${token}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(body)
+            });
+
+            if (!response.ok) {
+                const errData = await response.json();
+                throw new Error(errData.message);
+            }
+
+            // If GitHub succeeds, save to local database display
+            const featuresArray = featuresRaw.split('\n').filter(f => f.trim() !== '');
+            const newApp = {
+                id: Date.now(),
+                name: "PhishGuard Mobile Security",
+                version: nextVersion,
+                size: formatBytes(file.size),
+                date: new Date().toISOString().split('T')[0],
+                author: "PhishGuard Dev Team",
+                requirement: "Android 7.0+",
+                filename: fileName,
+                filePath: `app/${fileName}`,
+                features: featuresArray.length > 0 ? featuresArray : ["Performance improvements and bug fixes."]
+            };
+
+            let apps = JSON.parse(localStorage.getItem('pg_mobile_apps')) || [];
+            apps.unshift(newApp);
+            localStorage.setItem('pg_mobile_apps', JSON.stringify(apps));
+
+            alert(`✅ Success! ${nextVersion} has been uploaded to GitHub automatically!`);
+            
+            // Reset form
+            document.getElementById('appFeatures').value = '';
+            fileInput.value = '';
+            updateAutoVersionDisplay();
+            renderAppList();
+
+        } catch (error) {
+            alert("❌ GitHub Upload Failed: " + error.message + "\n\nMake sure your token is correct and has 'repo' access.");
+        } finally {
+            publishBtn.innerText = "UPLOAD & PUBLISH";
+            publishBtn.disabled = false;
+        }
     }
 
     function deleteApp(id) {
-        if (confirm("Are you sure you want to delete this release? It will be removed from the public website immediately.")) {
+        if (confirm("Remove this release from the UI? (Note: You still need to delete the file on GitHub manually if you want it gone forever)")) {
             let apps = JSON.parse(localStorage.getItem('pg_mobile_apps')) || [];
             apps = apps.filter(app => app.id !== id);
             localStorage.setItem('pg_mobile_apps', JSON.stringify(apps));
             renderAppList();
+            updateAutoVersionDisplay();
         }
     }
 
@@ -234,7 +293,7 @@
                         <p style="margin-top: 8px;"><strong>Features:</strong> ${app.features.join(', ')}</p>
                     </div>
                     <div>
-                        <button class="btn-delete" onclick="deleteApp(${app.id})">🗑️ Delete</button>
+                        <button class="btn-delete" onclick="deleteApp(${app.id})">🗑️ Hide</button>
                     </div>
                 </div>
             `;
