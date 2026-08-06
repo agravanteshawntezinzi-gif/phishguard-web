@@ -2,6 +2,7 @@
    GLOBAL & RESET
    ========================================= */
 html { scroll-behavior: smooth; }
+html, body { width: 100%; overflow-x: hidden; }
 body { font-family: 'Inter', sans-serif; background: #f4f7f6; margin: 0; padding: 0; color: #333; line-height: 1.6; }
 * { box-sizing: border-box; }
 
@@ -75,6 +76,18 @@ input[type="file"] { display: none; }
 .scan-btn:disabled { background: #a0c3ff; cursor: not-allowed; transform: none; box-shadow: none; }
 .loading { animation: pulse 1.5s infinite; }
 @keyframes pulse { 0% {opacity:0.6} 50% {opacity:1} 100% {opacity:0.6} }
+
+/* DOWNLOAD TABLE CONTAINER */
+.download-table-container {
+    width: 100%;
+    max-width: 1000px;
+    margin: 0 auto;
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    overflow-x: auto;
+    padding: 15px;
+}
 
 /* CAROUSEL RESULTS */
 .carousel-container { display: flex; overflow-x: auto; gap: 20px; padding: 20px 5px; scroll-snap-type: x mandatory; }
