@@ -168,6 +168,83 @@
     color: #94a3b8;
     cursor: pointer;
 }
+
+/* =========================================
+   TUTORIAL MODAL CSS
+   ========================================= */
+.tutorial-link-container {
+    text-align: center;
+    margin-top: 15px;
+}
+.tutorial-link-container span {
+    color: #2563eb;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: underline;
+    font-size: 15px;
+    transition: color 0.2s;
+}
+.tutorial-link-container span:hover {
+    color: #1d4ed8;
+}
+
+.tutorial-modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.8);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 10001; 
+    backdrop-filter: blur(5px);
+    padding: 20px;
+}
+.tutorial-modal-card {
+    background: #ffffff;
+    width: 100%;
+    max-width: 600px;
+    max-height: 85vh; /* Prevents modal from overflowing the screen */
+    border-radius: 12px;
+    padding: 25px;
+    position: relative;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+    display: flex;
+    flex-direction: column;
+}
+.tutorial-content {
+    overflow-y: auto; /* Enables scrolling for the long tutorial */
+    padding-right: 10px;
+}
+.tutorial-content::-webkit-scrollbar { width: 8px; }
+.tutorial-content::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+
+.tutorial-step {
+    margin-bottom: 30px;
+    border-bottom: 1px solid #e2e8f0;
+    padding-bottom: 20px;
+}
+.tutorial-step:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+.tutorial-step h4 {
+    color: #1e293b;
+    margin: 0 0 10px 0;
+    font-size: 1.1rem;
+}
+.tutorial-step p {
+    font-size: 0.95rem;
+    color: #475569;
+    margin: 0 0 15px 0;
+}
+.tutorial-step img {
+    width: 100%;
+    height: auto;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
 </style>
 </head>
 <body>
@@ -245,6 +322,12 @@
             </tbody>
         </table>
     </div>
+    
+    <!-- NEW TUTORIAL LINK -->
+    <div class="tutorial-link-container">
+        <span onclick="openTutorialModal()">How to install & fix Android restrictions</span>
+    </div>
+
 </section>
 
 <!-- LOCAL DEVICE HISTORY SECTION -->
@@ -396,11 +479,76 @@
     </div>
 </div>
 
+<!-- INSTALLATION TUTORIAL MODAL -->
+<div class="tutorial-modal-overlay" id="tutorialModal">
+    <div class="tutorial-modal-card">
+        <button class="modal-close-btn" onclick="closeTutorialModal()">&times;</button>
+        <div class="download-modal-header">How to Install & Bypass Restrictions</div>
+        
+        <div class="tutorial-content">
+            <div class="tutorial-step">
+                <h4>Step 1: Open Google Play Store</h4>
+                <p>Tap on your profile picture in the top right corner and select <b>Play Protect</b>.</p>
+                <img src="img/tutorial01.jpg" alt="Step 1">
+            </div>
+            <div class="tutorial-step">
+                <h4>Step 2: Open Play Protect Settings</h4>
+                <p>Tap the gear icon in the top right corner to open the settings.</p>
+                <img src="img/tutorial02.jpg" alt="Step 2">
+            </div>
+            <div class="tutorial-step">
+                <h4>Step 3: Toggle off Scanning</h4>
+                <p>Turn off the switch that says "Scan apps with Play Protect".</p>
+                <img src="img/tutorial03.jpg" alt="Step 3">
+            </div>
+            <div class="tutorial-step">
+                <h4>Step 4: Confirm Action</h4>
+                <p>Tap "Turn off" or "Pause" when the warning popup appears.</p>
+                <img src="img/tutorial04.jpg" alt="Step 4">
+            </div>
+            <div class="tutorial-step">
+                <h4>Step 5: Verify it is Disabled</h4>
+                <p>Make sure the toggle switch is completely greyed out.</p>
+                <img src="img/tutorial05.jpg" alt="Step 5">
+            </div>
+            <div class="tutorial-step">
+                <h4>Step 6: Install PhishGuard</h4>
+                <p>Open the downloaded APK from your browser or file manager and click "Install".</p>
+                <img src="img/tutorial06.jpg" alt="Step 6">
+            </div>
+            <div class="tutorial-step">
+                <h4>Step 7: Go to App Settings</h4>
+                <p>Go to your phone's <b>Settings > Apps > Manage Apps > PhishGuard</b>. Tap the three dots (or scroll to the bottom) and toggle <b>"Allow restricted settings"</b>.</p>
+                <img src="img/tutorial07.jpg" alt="Step 7">
+            </div>
+            <div class="tutorial-step">
+                <h4>Step 8: Confirm Restrictions Allowed</h4>
+                <p>Verify that the option is now toggled on and active.</p>
+                <img src="img/tutorial08.jpg" alt="Step 8">
+            </div>
+            <div class="tutorial-step">
+                <h4>Step 9: Open App and Set as Default</h4>
+                <p>Open PhishGuard from your home screen. When prompted, select PhishGuard as your default SMS app to enable background scanning.</p>
+                <img src="img/tutorial09.jpg" alt="Step 9">
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- External JS -->
 <script src="js/script.js"></script>
 
-<!-- Download Modal & Cross-Device App Fetch Logic -->
+<!-- Download Modal, Tutorial Modal & Cross-Device App Fetch Logic -->
 <script>
+// Tutorial Modal Logic
+function openTutorialModal() {
+    document.getElementById('tutorialModal').style.display = 'flex';
+}
+
+function closeTutorialModal() {
+    document.getElementById('tutorialModal').style.display = 'none';
+}
+
 let downloadInterval = null;
 let availableApps = [];
 
