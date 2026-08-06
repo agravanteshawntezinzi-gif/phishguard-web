@@ -13,24 +13,27 @@
 <style>
 /* Inline styling for Download Section & Modal */
 .download-table-container {
+    width: 100%;
     max-width: 1000px;
     margin: 0 auto;
     background: #ffffff;
     border-radius: 12px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-    overflow: hidden;
-    padding: 20px;
+    overflow-x: auto; /* Allows smooth horizontal swiping on mobile */
+    padding: 15px;
 }
 
 .apk-table {
     width: 100%;
     border-collapse: collapse;
     text-align: left;
+    min-width: 650px; /* Forces table to stay wide instead of crushing text */
 }
 
 .apk-table th, .apk-table td {
-    padding: 14px 18px;
+    padding: 14px 15px;
     border-bottom: 1px solid #eee;
+    white-space: nowrap; /* Prevents text from awkwardly stacking into multiple lines */
 }
 
 .apk-table th {
