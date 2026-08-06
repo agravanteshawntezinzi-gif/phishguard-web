@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PhishGuard - Mobile App Manager</title>
+
+<link rel="icon" type="image/png" href="img/logo.png">
+<!-- ADMIN SECURITY LOCK -->
+<script src="js/lock.js"></script>
+
+<style>
+    /* GLOBAL & SIDEBAR (Matches your existing admin style) */
+    :root { --primary: #1a73e8; --sidebar: #1e1e2d; --bg-light: #f4f7fe; --safe: #1e8e3e; --spam: #fbc02d; --scam: #d93025; --text-muted: #888; }
+    body { margin: 0; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: var(--bg-light); color: #333; display: flex; height: 100vh; overflow: hidden;}
+    .sidebar { width: 260px; background: var(--sidebar); color: white; display: flex; flex-direction: column; padding-top: 20px; box-shadow: 2px 0 10px rgba(0,0,0,0.1); z-index: 100;}
+    .sidebar-header { text-align: center; padding-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 20px; }
+    .sidebar-logo { width: 35px; height: auto; margin-bottom: 5px; }
+    .sidebar-header h2 { margin: 0; font-size: 22px; letter-spacing: 1px; color: #fff; display: flex; align-items: center; justify-content: center; gap: 10px;}
+    .sidebar-header span { font-size: 12px; color: #aaa; }
+    .nav-links { display: flex; flex-direction: column; gap: 5px; padding: 0 15px; }
+    .nav-link { padding: 15px 20px; color: #bbb; text-decoration: none; border-radius: 8px; font-weight: bold; transition: 0.3s; display: flex; align-items: center; gap: 12px; font-size: 15px;}
+    .nav-link:hover, .nav-link.active { background: var(--primary); color: white; }
+    .logout-btn { margin-top: auto; margin-bottom: 20px; margin-left: 15px; margin-right: 15px; padding: 15px; background: rgba(217, 48, 37, 0.1); color: #ff6b6b; text-align: center; text-decoration: none; border-radius: 8px; font-weight: bold; transition: 0.3s; border: none; cursor: pointer; font-size: 15px;}
+    .logout-btn:hover { background: var(--scam); color: white; }
+
+    /* MAIN CONTENT */
+    .main-content { flex: 1; padding: 30px; overflow-y: auto; display: flex; flex-direction: column; gap: 20px;}
+    .header-controls { display: flex; justify-content: space-between; align-items: center; background: white; padding: 20px 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);}
+    .header-controls h2 { margin: 0; color: var(--sidebar); }
+    .header-controls p { margin: 5px 0 0 0; color: var(--text-muted); font-size: 14px; }
+
+    /* LAYOUT CONTAINERS */
+    .layout-wrapper { display: flex; gap: 20px; align-items: flex-start; height: 100%;}
+    .panel { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+    
+    /* UPLOAD FORM (LEFT) */
+    .control-panel { flex: 1; max-width: 400px; display: flex; flex-direction: column; max-height: 85vh; overflow-y: auto;}
+    .control-panel h3 { margin-top: 0; color: var(--primary); border-bottom: 1px solid #eee; padding-bottom: 10px;}
+    .form-group { margin-bottom: 15px; }
+    .form-group label { display: block; font-size: 13px; font-weight: bold; margin-bottom: 5px; color: #555; }
+    .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-family: inherit;}
+    .form-group textarea { resize: vertical; height: 80px; }
+    .btn-action { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; margin-top: 10px; font-size: 15px;}
+    .btn-action:hover { background: #1557b0; }
+
+    /* APP LIST (RIGHT) */
+    .app-list-view { flex: 2; display: flex; flex-direction: column; min-height: 500px;}
+    .app-list-view h3 { margin-top: 0; color: var(--sidebar); border-bottom: 1px solid #eee; padding-bottom: 10px;}
+    
+    .app-card { border: 1px solid #eee; border-radius: 12px; padding: 20px; margin-bottom: 15px; background: #fdfdfd; display: flex; justify-content: space-between; align-items: center; transition: 0.2s;}
+    .app-card:hover { box-shadow: 0 4px 10px rgba(0,0,0,0.05); border-color: #ddd;}
+    .app-details h4 { margin: 0 0 5px 0; color: var(--primary); font-size: 18px; display: flex; align-items: center; gap: 8px;}
+    .app-details p { margin: 2px 0; font-size: 13px; color: #666; }
+    .badge { background: var(--sidebar); color: white; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: bold;}
+    
+    .btn-delete { background: #fee6e6; color: var(--scam); border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s;}
+    .btn-delete:hover { background: var(--scam); color: white;}
+
+    .github-notice { background: #fff8e1; border-left: 4px solid var(--spam); padding: 15px; border-radius: 8px; font-size: 13px; color: #555; margin-bottom: 20px;}
+</style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h2><img src="img/logo.png" alt="Logo" class="sidebar-logo"> PhishGuard</h2>
+            <span>Admin Dashboard</span>
+        </div>
+        <div class="nav-links">
+            <a href="dashboard.html" class="nav-link">📊 System Analytics</a>
+            <a href="feeder.html" class="nav-link">📁 CSV Data Feeder</a>
+            <a href="rechecker.html" class="nav-link">✏️ Data Rechecker</a>
+            <a href="mobile_app.html" class="nav-link active">📱 Mobile App</a>
+        </div>
+        <button class="logout-btn" onclick="performLogout()">Log Out</button>
+    </div>
+
+    <div class="main-content">
+        <div class="header-controls">
+            <div>
+                <h2>Mobile App Releases</h2>
+                <p>Manage APK versions, requirements, and update notes for public download.</p>
+            </div>
+        </div>
+
+        <div class="layout-wrapper">
+            <!-- UPLOAD FORM -->
+            <div class="panel control-panel">
+                <h3>🚀 Publish New Version</h3>
+                
+                <div class="form-group">
+                    <label>App Name</label>
+                    <input type="text" id="appName" value="PhishGuard Mobile Security">
+                </div>
+
+                <div style="display: flex; gap: 10px;">
+                    <div class="form-group" style="flex: 2;">
+                        <label>Version Number</label>
+                        <input type="text" id="appVersion" placeholder="e.g., 1.0.0">
+                    </div>
+                    <div class="form-group" style="flex: 1.5;">
+                        <label>Stage</label>
+                        <select id="appStage">
+                            <option value="Alpha">Alpha</option>
+                            <option value="Beta">Beta</option>
+                            <option value="Stable">Stable</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Select APK File (Calculates Size & Filename)</label>
+                    <input type="file" id="apkFile" accept=".apk">
+                </div>
+
+                <div class="form-group">
+                    <label>Developer / Author</label>
+                    <input type="text" id="appAuthor" value="PhishGuard Dev Team">
+                </div>
+
+                <div class="form-group">
+                    <label>System Requirement</label>
+                    <input type="text" id="appReq" value="Android 7.0+">
+                </div>
+
+                <div class="form-group">
+                    <label>Update Features (One per line)</label>
+                    <textarea id="appFeatures" placeholder="Added instant scanner&#10;Fixed OCR bugs&#10;Improved UI design"></textarea>
+                </div>
+
+                <button class="btn-action" onclick="publishApp()">PUBLISH RELEASE</button>
+            </div>
+
+            <!-- APPS LIST -->
+            <div class="panel app-list-view">
+                <div class="github-notice">
+                    <strong>⚠️ Important Hosting Notice:</strong> Publishing here updates the Database and Website UI. However, because the site is hosted on GitHub, you must still manually upload the actual <code>.apk</code> file into your GitHub <code>app/</code> folder with the exact filename shown below for the download to work!
+                </div>
+                
+                <h3>📦 Current Uploaded Releases</h3>
+                <div id="appListContainer">
+                    <!-- Apps inject here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+    // Load apps from localStorage on page load
+    document.addEventListener("DOMContentLoaded", renderAppList);
+
+    function formatBytes(bytes, decimals = 2) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const dm = decimals < 0 ? 0 : decimals;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+    }
+
+    function publishApp() {
+        const name = document.getElementById('appName').value.trim();
+        const ver = document.getElementById('appVersion').value.trim();
+        const stage = document.getElementById('appStage').value;
+        const author = document.getElementById('appAuthor').value.trim();
+        const req = document.getElementById('appReq').value.trim();
+        const featuresRaw = document.getElementById('appFeatures').value.trim();
+        const fileInput = document.getElementById('apkFile');
+
+        if (!ver) { alert("Please provide a Version Number!"); return; }
+        if (!fileInput.files.length) { alert("Please select an APK file so the system can calculate its size!"); return; }
+
+        const file = fileInput.files[0];
+        const fileSize = formatBytes(file.size);
+        const fileName = file.name;
+        
+        // Convert features textarea into an array of strings
+        const featuresArray = featuresRaw.split('\n').filter(f => f.trim() !== '');
+
+        const newApp = {
+            id: Date.now(),
+            name: name,
+            version: `v${ver}-${stage}`,
+            size: fileSize,
+            date: new Date().toISOString().split('T')[0], // YYYY-MM-DD
+            author: author,
+            requirement: req,
+            filename: fileName,
+            filePath: `app/${fileName}`,
+            features: featuresArray.length > 0 ? featuresArray : ["Standard release"]
+        };
+
+        let apps = JSON.parse(localStorage.getItem('pg_mobile_apps')) || [];
+        // Add new app to the top of the array
+        apps.unshift(newApp);
+        localStorage.setItem('pg_mobile_apps', JSON.stringify(apps));
+
+        // Reset form
+        document.getElementById('appVersion').value = '';
+        document.getElementById('appFeatures').value = '';
+        fileInput.value = '';
+
+        alert(`Success! Version ${newApp.version} published.\n\nDon't forget to upload ${fileName} to your GitHub 'app' folder!`);
+        renderAppList();
+    }
+
+    function deleteApp(id) {
+        if (confirm("Are you sure you want to delete this release? It will be removed from the public website immediately.")) {
+            let apps = JSON.parse(localStorage.getItem('pg_mobile_apps')) || [];
+            apps = apps.filter(app => app.id !== id);
+            localStorage.setItem('pg_mobile_apps', JSON.stringify(apps));
+            renderAppList();
+        }
+    }
+
+    function renderAppList() {
+        const apps = JSON.parse(localStorage.getItem('pg_mobile_apps')) || [];
+        const container = document.getElementById('appListContainer');
+        
+        if (apps.length === 0) {
+            container.innerHTML = `<div style="text-align: center; padding: 40px; color: #888;">No mobile applications have been published yet.</div>`;
+            return;
+        }
+
+        container.innerHTML = '';
+        apps.forEach(app => {
+            container.innerHTML += `
+                <div class="app-card">
+                    <div class="app-details">
+                        <h4>${app.name} <span class="badge">${app.version}</span></h4>
+                        <p><strong>Filename:</strong> ${app.filename} &nbsp;|&nbsp; <strong>Size:</strong> ${app.size}</p>
+                        <p><strong>Released:</strong> ${app.date} &nbsp;|&nbsp; <strong>Author:</strong> ${app.author}</p>
+                        <p style="margin-top: 8px;"><strong>Features:</strong> ${app.features.join(', ')}</p>
+                    </div>
+                    <div>
+                        <button class="btn-delete" onclick="deleteApp(${app.id})">🗑️ Delete</button>
+                    </div>
+                </div>
+            `;
+        });
+    }
+</script>
+</body>
+</html>
