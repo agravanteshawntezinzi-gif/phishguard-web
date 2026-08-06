@@ -580,7 +580,7 @@ async function loadAppsFromGitHub() {
                         date: matchingLocal ? matchingLocal.date : "Latest Release",
                         author: "PhishGuard Dev Team",
                         filename: f.name,
-                        filePath: `app/${f.name}`,
+                        filePath: f.download_url,
                         features: matchingLocal ? matchingLocal.features : [
                             "Real-time SMS inbox scanning",
                             "Dual-SIM connection support",
