@@ -234,7 +234,11 @@
                 </tr>
             </thead>
             <tbody id="appTableBody">
-                <!-- Data will be injected here automatically by JS -->
+                <tr id="emptyAppRow">
+                    <td colspan="5" style="text-align: center; color: #94a3b8; padding: 25px;">
+                        Loading mobile application releases...
+                    </td>
+                </tr>
             </tbody>
         </table>
     </div>
@@ -392,12 +396,60 @@
 <!-- External JS -->
 <script src="js/script.js"></script>
 
-<!-- Download Modal Logic Script -->
+<!-- Download Modal & Cross-Device App Fetch Logic -->
 <script>
 let downloadInterval = null;
+let availableApps = [];
 
-// 🚀 THE CONNECTION: Read directly from the Admin's LocalStorage!
-let availableApps = JSON.parse(localStorage.getItem('pg_mobile_apps')) || [];
+// 🚀 CROSS-DEVICE FIX: Queries GitHub API directly so phones, tablets, and PCs can all see the release!
+async function loadAppsFromGitHub() {
+    let localApps = JSON.parse(localStorage.getItem('pg_mobile_apps')) || [];
+
+    try {
+        const repoUrl = 'https://api.github.com/repos/agravanteshawntezinzi-gif/phishguard-web/contents/app';
+        const response = await fetch(repoUrl);
+        
+        if (response.ok) {
+            const files = await response.json();
+            const apkFiles = files.filter(f => f.name.endsWith('.apk'));
+
+            if (apkFiles.length > 0) {
+                availableApps = apkFiles.map((f, idx) => {
+                    let matchingLocal = localApps.find(l => l.filename === f.name);
+                    
+                    // Parse version from filename like PhishGuard_v1.0.0_Alpha.apk
+                    let verClean = f.name.replace('PhishGuard_', '').replace('.apk', '').replace(/_/g, '-');
+                    if (!verClean.startsWith('v')) verClean = 'v' + verClean;
+
+                    return {
+                        id: idx + 1,
+                        name: "PhishGuard Mobile Security",
+                        version: matchingLocal ? matchingLocal.version : verClean,
+                        size: matchingLocal ? matchingLocal.size : (f.size ? (f.size / (1024 * 1024)).toFixed(1) + " MB" : "15.0 MB"),
+                        date: matchingLocal ? matchingLocal.date : "Latest Release",
+                        author: "PhishGuard Dev Team",
+                        filename: f.name,
+                        filePath: `app/${f.name}`,
+                        features: matchingLocal ? matchingLocal.features : [
+                            "Real-time SMS inbox scanning",
+                            "Dual-SIM connection support",
+                            "Machine Learning threat detection",
+                            "Send deep-scan reports to Admin"
+                        ]
+                    };
+                });
+                renderAppTable();
+                return;
+            }
+        }
+    } catch (err) {
+        console.warn("GitHub API error, using local fallback:", err);
+    }
+
+    // Fallback to local storage if API is offline
+    availableApps = localApps;
+    renderAppTable();
+}
 
 function renderAppTable() {
     const tbody = document.getElementById('appTableBody');
@@ -435,7 +487,6 @@ function openDownloadModal(appId) {
     const app = availableApps.find(a => a.id === appId);
     if (!app) return;
 
-    // Reset visibility of the manual download link
     const manualDiv = document.getElementById('manualDownloadDiv');
     manualDiv.style.display = 'none';
 
@@ -454,7 +505,6 @@ function openDownloadModal(appId) {
     const modal = document.getElementById('downloadModal');
     modal.style.display = 'flex';
 
-    // 10 Second Countdown Timer
     let timeLeft = 10;
     const timerDisplay = document.getElementById('downloadTimer');
     timerDisplay.innerText = timeLeft;
@@ -466,9 +516,7 @@ function openDownloadModal(appId) {
 
         if (timeLeft <= 0) {
             clearInterval(downloadInterval);
-            // Show the "App didn't download?" text
             manualDiv.style.display = 'block';
-            // Trigger automatic download
             manualLink.click();
         }
     }, 1000);
@@ -479,8 +527,7 @@ function closeDownloadModal() {
     document.getElementById('downloadModal').style.display = 'none';
 }
 
-// Initial Render
-document.addEventListener('DOMContentLoaded', renderAppTable);
+document.addEventListener('DOMContentLoaded', loadAppsFromGitHub);
 </script>
 
 </body>
