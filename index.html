@@ -396,27 +396,8 @@
 <script>
 let downloadInterval = null;
 
-// The table will read from this array. Currently empty to show the placeholder state.
-const availableApps = [
-    /* 
-    Example of how the Admin backend will format the data later:
-    {
-        id: 1,
-        name: "PhishGuard Mobile App",
-        version: "v1.0.0-Beta",
-        size: "14.2 MB",
-        date: "2026-08-01",
-        author: "PhishGuard Dev Team",
-        filename: "PhishGuard_v1.0.0.apk",
-        filePath: "app/PhishGuard_v1.0.0.apk",
-        features: [
-            "Instant SMS link scanner",
-            "Support Vector Machine threat detection",
-            "Direct synchronization with PhishGuard Web"
-        ]
-    }
-    */
-];
+// 🚀 THE CONNECTION: Read directly from the Admin's LocalStorage!
+let availableApps = JSON.parse(localStorage.getItem('pg_mobile_apps')) || [];
 
 function renderAppTable() {
     const tbody = document.getElementById('appTableBody');
