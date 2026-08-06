@@ -11,7 +11,7 @@
 <!-- External CSS -->
 <link rel="stylesheet" href="css/style.css">
 <style>
-/* Inline styling for Download Section & Modal to ensure zero setup issues */
+/* Inline styling for Download Section & Modal */
 .download-table-container {
     max-width: 1000px;
     margin: 0 auto;
@@ -141,6 +141,7 @@
     font-size: 0.9rem;
     color: #64748b;
     margin-top: 15px;
+    display: none; /* Hidden by default until timer hits 0 */
 }
 
 .manual-download-text a {
@@ -233,12 +234,7 @@
                 </tr>
             </thead>
             <tbody id="appTableBody">
-                <!-- If no apps are uploaded, this placeholder row shows -->
-                <tr id="emptyAppRow">
-                    <td colspan="5" style="text-align: center; color: #94a3b8; padding: 25px;">
-                        No mobile application releases available yet.
-                    </td>
-                </tr>
+                <!-- Data will be injected here automatically by JS -->
             </tbody>
         </table>
     </div>
@@ -341,22 +337,20 @@
         </div>
 
         <div class="app-info-grid">
-            <div><strong>Version:</strong> <span id="modalAppVersion">1.0.0</span></div>
-            <div><strong>Developer:</strong> <span id="modalAppAuthor">PhishGuard Team</span></div>
-            <div><strong>File Size:</strong> <span id="modalAppSize">15.4 MB</span></div>
+            <div><strong>Version:</strong> <span id="modalAppVersion">...</span></div>
+            <div><strong>Developer:</strong> <span id="modalAppAuthor">...</span></div>
+            <div><strong>File Size:</strong> <span id="modalAppSize">...</span></div>
             <div><strong>Requirement:</strong> Android 7.0+</div>
         </div>
 
         <div class="app-features-list">
             <strong>Key Features:</strong>
             <ul id="modalAppFeatures">
-                <li>Real-time SMS Smishing & Phishing link scanner.</li>
-                <li>Offline Machine Learning classification engine.</li>
-                <li>One-tap threat reporting to system administrators.</li>
+                <!-- Features dynamically load here -->
             </ul>
         </div>
 
-        <div class="manual-download-text">
+        <div class="manual-download-text" id="manualDownloadDiv">
             App didn't download? <a id="manualDownloadLink" href="#" download>Click here again</a>
         </div>
     </div>
@@ -402,8 +396,10 @@
 <script>
 let downloadInterval = null;
 
-// Demo App Data structure (This will pull dynamically when you add the Admin Upload later)
+// The table will read from this array. Currently empty to show the placeholder state.
 const availableApps = [
+    /* 
+    Example of how the Admin backend will format the data later:
     {
         id: 1,
         name: "PhishGuard Mobile App",
@@ -419,6 +415,7 @@ const availableApps = [
             "Direct synchronization with PhishGuard Web"
         ]
     }
+    */
 ];
 
 function renderAppTable() {
@@ -427,7 +424,7 @@ function renderAppTable() {
 
     if (availableApps.length === 0) {
         tbody.innerHTML = `
-            <tr>
+            <tr id="emptyAppRow">
                 <td colspan="5" style="text-align: center; color: #94a3b8; padding: 25px;">
                     No mobile application releases available yet.
                 </td>
@@ -457,6 +454,10 @@ function openDownloadModal(appId) {
     const app = availableApps.find(a => a.id === appId);
     if (!app) return;
 
+    // Reset visibility of the manual download link
+    const manualDiv = document.getElementById('manualDownloadDiv');
+    manualDiv.style.display = 'none';
+
     document.getElementById('modalAppName').innerText = app.name;
     document.getElementById('modalAppVersion').innerText = app.version;
     document.getElementById('modalAppAuthor').innerText = app.author;
@@ -484,6 +485,8 @@ function openDownloadModal(appId) {
 
         if (timeLeft <= 0) {
             clearInterval(downloadInterval);
+            // Show the "App didn't download?" text
+            manualDiv.style.display = 'block';
             // Trigger automatic download
             manualLink.click();
         }
