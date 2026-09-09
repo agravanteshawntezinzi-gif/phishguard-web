@@ -86,7 +86,7 @@
     background: #ffffff;
     width: 100%;
     max-width: 600px;
-    max-height: 90vh; 
+    max-height: 85vh; 
     overflow-y: auto; 
     border-radius: 12px;
     padding: 25px;
@@ -101,7 +101,7 @@
     margin-bottom: 15px;
     border-bottom: 2px solid #f1f5f9;
     padding-bottom: 10px;
-    padding-right: 30px;
+    padding-right: 30px; 
 }
 
 .timer-box {
@@ -584,9 +584,7 @@ async function loadAppsFromGitHub() {
                         const decodedContent = decodeURIComponent(escape(atob(manData.content.replace(/\s/g, ''))));
                         globalManifest = JSON.parse(decodedContent);
                     }
-                } catch(e) { 
-                    console.warn("Could not fetch global manifest:", e);
-                }
+                } catch(e) {}
 
                 availableApps = await Promise.all(apkFiles.map(async (f, idx) => {
                     let matchingLocal = localApps.find(l => l.filename === f.name);
@@ -606,12 +604,32 @@ async function loadAppsFromGitHub() {
                         }
                     } catch(e) { }
 
-                    let customFeatures = globalManifest[f.name] || (matchingLocal ? matchingLocal.features : [
+                    // 🔥 THE FIX: Explicitly assigns your exact features based on the version name
+                    let fallbackFeatures = [
                         "Real-time SMS inbox scanning",
                         "Dual-SIM connection support",
                         "Machine Learning threat detection",
                         "Send deep-scan reports to Admin"
-                    ]);
+                    ];
+
+                    if (f.name.includes("Beta") || f.name.includes("v1.0.0-Beta")) {
+                        fallbackFeatures = [
+                            "Added automatic background scanning.",
+                            "Notifications show color-coded threats.",
+                            "Reply directly from notifications.",
+                            "Replies use the correct SIM.",
+                            "Added dynamic recent contacts list.",
+                            "Inbox updates in real time.",
+                            "Fixed camera cutout UI overlap.",
+                            "Added native ripple click effects."
+                        ];
+                    } else if (f.name.includes("Stable") || f.name.includes("v1.0.0-Stable")) {
+                        fallbackFeatures = [
+                            "fix crash"
+                        ];
+                    }
+
+                    let customFeatures = globalManifest[f.name] || (matchingLocal ? matchingLocal.features : fallbackFeatures);
 
                     return {
                         id: idx + 1,
