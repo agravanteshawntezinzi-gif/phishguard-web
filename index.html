@@ -11,7 +11,7 @@
 <!-- External CSS -->
 <link rel="stylesheet" href="css/style.css">
 <style>
-/* Inline styling for Download Section & Modal - Mobile Optimized */
+/* Inline styling for Download Section & Modal */
 .download-table-container {
     width: 100%;
     max-width: 1000px;
@@ -69,7 +69,7 @@
     background-color: #1d4ed8;
 }
 
-/* Modal Styling - Fully responsive for mobile */
+/* Modal Styling */
 .download-modal-overlay {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
@@ -86,8 +86,8 @@
     background: #ffffff;
     width: 100%;
     max-width: 600px;
-    max-height: 90vh;
-    overflow-y: auto;
+    max-height: 90vh; 
+    overflow-y: auto; 
     border-radius: 12px;
     padding: 25px;
     position: relative;
@@ -208,7 +208,7 @@
     justify-content: center;
     z-index: 10001; 
     backdrop-filter: blur(5px);
-    padding: 15px;
+    padding: 20px;
 }
 .tutorial-modal-card {
     background: #ffffff;
@@ -334,6 +334,7 @@
         </table>
     </div>
     
+    <!-- NEW TUTORIAL LINK -->
     <div class="tutorial-link-container">
         <span onclick="openTutorialModal()">How to install & fix Android restrictions</span>
     </div>
@@ -426,14 +427,13 @@
     <p>&copy; 2026 PhishGuard Anti-Phishing System. Built for academic research and protection.</p>
 </footer>
 
-<!-- DOWNLOAD COUNTDOWN & INFO MODAL -->
+<!-- DOWNLOAD COUNTDOWN & DETAILS MODAL -->
 <div class="download-modal-overlay" id="downloadModal">
     <div class="download-modal-card">
         <button class="modal-close-btn" onclick="closeDownloadModal()">&times;</button>
         <div class="download-modal-header" id="modalAppName">PhishGuard Mobile Security</div>
         
-        <!-- Timer Box (Hidden in Info Mode) -->
-        <div class="timer-box" id="timerBoxContainer">
+        <div class="timer-box">
             Your download will begin automatically in <span class="timer-count" id="downloadTimer">10</span> seconds...
         </div>
 
@@ -450,9 +450,6 @@
                 <!-- Features dynamically load here -->
             </ul>
         </div>
-
-        <!-- Download Button shown ONLY in Info Mode -->
-        <button class="btn-download-trigger" id="infoModeDownloadBtn" style="width: 100%; margin-top: 10px; display: none;">Download APK Now</button>
 
         <div class="manual-download-text" id="manualDownloadDiv">
             App didn't download? <a id="manualDownloadLink" href="#" download>Click here again</a>
@@ -565,7 +562,6 @@ function closeTutorialModal() {
 let downloadInterval = null;
 let availableApps = [];
 
-// 🚀 FIXED: Now pulls exact commit dates AND custom features directly from GitHub!
 async function loadAppsFromGitHub() {
     let localApps = JSON.parse(localStorage.getItem('pg_mobile_apps')) || [];
 
@@ -578,16 +574,20 @@ async function loadAppsFromGitHub() {
             const apkFiles = files.filter(f => f.name.endsWith('.apk'));
 
             if (apkFiles.length > 0) {
-                // 1. Fetch manifest file to get unique version features globally
                 let globalManifest = {};
                 try {
-                    const manRes = await fetch('https://raw.githubusercontent.com/agravanteshawntezinzi-gif/phishguard-web/main/app/phishguard_manifest.json');
+                    const cacheBuster = new Date().getTime();
+                    const manRes = await fetch(`https://api.github.com/repos/agravanteshawntezinzi-gif/phishguard-web/contents/app/phishguard_manifest.json?t=${cacheBuster}`);
+                    
                     if (manRes.ok) {
-                        globalManifest = await manRes.json();
+                        const manData = await manRes.json();
+                        const decodedContent = decodeURIComponent(escape(atob(manData.content.replace(/\s/g, ''))));
+                        globalManifest = JSON.parse(decodedContent);
                     }
-                } catch(e) {}
+                } catch(e) { 
+                    console.warn("Could not fetch global manifest:", e);
+                }
 
-                // 2. Map files and assign exact features and real release dates
                 availableApps = await Promise.all(apkFiles.map(async (f, idx) => {
                     let matchingLocal = localApps.find(l => l.filename === f.name);
                     
@@ -606,7 +606,6 @@ async function loadAppsFromGitHub() {
                         }
                     } catch(e) { }
 
-                    // Apply features from manifest if they exist, otherwise fallback
                     let customFeatures = globalManifest[f.name] || (matchingLocal ? matchingLocal.features : [
                         "Real-time SMS inbox scanning",
                         "Dual-SIM connection support",
@@ -627,7 +626,6 @@ async function loadAppsFromGitHub() {
                     };
                 }));
                 
-                // Sort by version (highest ID first) to keep newest at top
                 availableApps.sort((a, b) => b.id - a.id);
                 renderAppTable();
                 return;
@@ -660,17 +658,12 @@ function renderAppTable() {
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>
-                <!-- Click Name opens INFO mode -->
-                <span class="apk-link" onclick="openInfoModal(${app.id})">${app.name}</span>
+                <span class="apk-link" onclick="openDownloadModal(${app.id})">${app.name}</span>
             </td>
-            <td>
-                <!-- Click Version opens INFO mode -->
-                <span class="apk-link" onclick="openInfoModal(${app.id})">${app.version}</span>
-            </td>
+            <td><span class="apk-link" onclick="openDownloadModal(${app.id})">${app.version}</span></td>
             <td>${app.size}</td>
             <td>${app.date}</td>
             <td>
-                <!-- Click Button opens DOWNLOAD mode -->
                 <button class="btn-download-trigger" onclick="openDownloadModal(${app.id})">Download</button>
             </td>
         `;
@@ -678,7 +671,13 @@ function renderAppTable() {
     });
 }
 
-function populateModalData(app) {
+function openDownloadModal(appId) {
+    const app = availableApps.find(a => a.id === appId);
+    if (!app) return;
+
+    const manualDiv = document.getElementById('manualDownloadDiv');
+    manualDiv.style.display = 'none';
+
     document.getElementById('modalAppName').innerText = app.name;
     document.getElementById('modalAppVersion').innerText = app.version;
     document.getElementById('modalAppAuthor').innerText = app.author;
@@ -690,36 +689,9 @@ function populateModalData(app) {
     const manualLink = document.getElementById('manualDownloadLink');
     manualLink.href = app.filePath;
     manualLink.setAttribute('download', app.filename);
-}
 
-function openInfoModal(appId) {
-    const app = availableApps.find(a => a.id === appId);
-    if (!app) return;
-
-    populateModalData(app);
-
-    document.getElementById('timerBoxContainer').style.display = 'none';
-    document.getElementById('manualDownloadDiv').style.display = 'none';
-    
-    const infoBtn = document.getElementById('infoModeDownloadBtn');
-    infoBtn.style.display = 'block';
-    infoBtn.onclick = function() { openDownloadModal(appId); };
-
-    document.getElementById('downloadModal').style.display = 'flex';
-    clearInterval(downloadInterval);
-}
-
-function openDownloadModal(appId) {
-    const app = availableApps.find(a => a.id === appId);
-    if (!app) return;
-
-    populateModalData(app);
-
-    document.getElementById('timerBoxContainer').style.display = 'block';
-    document.getElementById('manualDownloadDiv').style.display = 'none';
-    document.getElementById('infoModeDownloadBtn').style.display = 'none';
-
-    document.getElementById('downloadModal').style.display = 'flex';
+    const modal = document.getElementById('downloadModal');
+    modal.style.display = 'flex';
 
     let timeLeft = 10;
     const timerDisplay = document.getElementById('downloadTimer');
@@ -732,8 +704,8 @@ function openDownloadModal(appId) {
 
         if (timeLeft <= 0) {
             clearInterval(downloadInterval);
-            document.getElementById('manualDownloadDiv').style.display = 'block';
-            document.getElementById('manualDownloadLink').click();
+            manualDiv.style.display = 'block';
+            manualLink.click();
         }
     }, 1000);
 }
