@@ -19,7 +19,7 @@
     background: #ffffff;
     border-radius: 12px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-    overflow-x: auto; /* Allows smooth horizontal swiping on mobile */
+    overflow-x: auto; 
     padding: 15px;
 }
 
@@ -27,13 +27,13 @@
     width: 100%;
     border-collapse: collapse;
     text-align: left;
-    min-width: 650px; /* Forces table to stay wide instead of crushing text */
+    min-width: 650px; 
 }
 
 .apk-table th, .apk-table td {
     padding: 14px 15px;
     border-bottom: 1px solid #eee;
-    white-space: nowrap; /* Prevents text from awkwardly stacking into multiple lines */
+    white-space: nowrap; 
 }
 
 .apk-table th {
@@ -144,7 +144,7 @@
     font-size: 0.9rem;
     color: #64748b;
     margin-top: 15px;
-    display: none; /* Hidden by default until timer hits 0 */
+    display: none; 
 }
 
 .manual-download-text a {
@@ -203,7 +203,7 @@
     background: #ffffff;
     width: 100%;
     max-width: 600px;
-    max-height: 85vh; /* Prevents modal from overflowing the screen */
+    max-height: 85vh; 
     border-radius: 12px;
     padding: 25px;
     position: relative;
@@ -212,7 +212,7 @@
     flex-direction: column;
 }
 .tutorial-content {
-    overflow-y: auto; /* Enables scrolling for the long tutorial */
+    overflow-y: auto; 
     padding-right: 10px;
 }
 .tutorial-content::-webkit-scrollbar { width: 8px; }
@@ -323,7 +323,6 @@
         </table>
     </div>
     
-    <!-- NEW TUTORIAL LINK -->
     <div class="tutorial-link-container">
         <span onclick="openTutorialModal()">How to install & fix Android restrictions</span>
     </div>
@@ -416,13 +415,14 @@
     <p>&copy; 2026 PhishGuard Anti-Phishing System. Built for academic research and protection.</p>
 </footer>
 
-<!-- DOWNLOAD COUNTDOWN & DETAILS MODAL -->
+<!-- DOWNLOAD COUNTDOWN & INFO MODAL -->
 <div class="download-modal-overlay" id="downloadModal">
     <div class="download-modal-card">
         <button class="modal-close-btn" onclick="closeDownloadModal()">&times;</button>
         <div class="download-modal-header" id="modalAppName">PhishGuard Mobile Security</div>
         
-        <div class="timer-box">
+        <!-- Timer Box (Hidden in Info Mode) -->
+        <div class="timer-box" id="timerBoxContainer">
             Your download will begin automatically in <span class="timer-count" id="downloadTimer">10</span> seconds...
         </div>
 
@@ -439,6 +439,9 @@
                 <!-- Features dynamically load here -->
             </ul>
         </div>
+
+        <!-- Download Button shown ONLY in Info Mode -->
+        <button class="btn-download-trigger" id="infoModeDownloadBtn" style="width: 100%; margin-top: 10px; display: none;">Download APK Now</button>
 
         <div class="manual-download-text" id="manualDownloadDiv">
             App didn't download? <a id="manualDownloadLink" href="#" download>Click here again</a>
@@ -540,7 +543,6 @@
 
 <!-- Download Modal, Tutorial Modal & Cross-Device App Fetch Logic -->
 <script>
-// Tutorial Modal Logic
 function openTutorialModal() {
     document.getElementById('tutorialModal').style.display = 'flex';
 }
@@ -552,7 +554,7 @@ function closeTutorialModal() {
 let downloadInterval = null;
 let availableApps = [];
 
-// 🚀 CROSS-DEVICE FIX: Queries GitHub API directly so phones, tablets, and PCs can all see the release!
+// 🚀 FIXED: Now pulls exact commit date from GitHub API so Android & PC always match!
 async function loadAppsFromGitHub() {
     let localApps = JSON.parse(localStorage.getItem('pg_mobile_apps')) || [];
 
@@ -565,19 +567,31 @@ async function loadAppsFromGitHub() {
             const apkFiles = files.filter(f => f.name.endsWith('.apk'));
 
             if (apkFiles.length > 0) {
-                availableApps = apkFiles.map((f, idx) => {
+                // Fetch commit details for each file to get the TRUE release date across all devices
+                availableApps = await Promise.all(apkFiles.map(async (f, idx) => {
                     let matchingLocal = localApps.find(l => l.filename === f.name);
                     
-                    // Parse version from filename like PhishGuard_v1.0.0_Alpha.apk
                     let verClean = f.name.replace('PhishGuard_', '').replace('.apk', '').replace(/_/g, '-');
                     if (!verClean.startsWith('v')) verClean = 'v' + verClean;
+
+                    let realDate = "Latest Release";
+                    try {
+                        const commitRes = await fetch(`https://api.github.com/repos/agravanteshawntezinzi-gif/phishguard-web/commits?path=${f.path}`);
+                        if (commitRes.ok) {
+                            const commitData = await commitRes.json();
+                            if (commitData.length > 0) {
+                                const d = new Date(commitData[0].commit.author.date);
+                                realDate = d.toISOString().split('T')[0];
+                            }
+                        }
+                    } catch(e) { }
 
                     return {
                         id: idx + 1,
                         name: "PhishGuard Mobile Security",
                         version: matchingLocal ? matchingLocal.version : verClean,
                         size: matchingLocal ? matchingLocal.size : (f.size ? (f.size / (1024 * 1024)).toFixed(1) + " MB" : "15.0 MB"),
-                        date: matchingLocal ? matchingLocal.date : "Latest Release",
+                        date: realDate !== "Latest Release" ? realDate : (matchingLocal ? matchingLocal.date : "Latest Release"),
                         author: "PhishGuard Dev Team",
                         filename: f.name,
                         filePath: f.download_url,
@@ -588,7 +602,7 @@ async function loadAppsFromGitHub() {
                             "Send deep-scan reports to Admin"
                         ]
                     };
-                });
+                }));
                 renderAppTable();
                 return;
             }
@@ -597,7 +611,6 @@ async function loadAppsFromGitHub() {
         console.warn("GitHub API error, using local fallback:", err);
     }
 
-    // Fallback to local storage if API is offline
     availableApps = localApps;
     renderAppTable();
 }
@@ -621,12 +634,17 @@ function renderAppTable() {
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>
-                <span class="apk-link" onclick="openDownloadModal(${app.id})">${app.name}</span>
+                <!-- Click Name opens INFO mode -->
+                <span class="apk-link" onclick="openInfoModal(${app.id})">${app.name}</span>
             </td>
-            <td><span class="apk-link" onclick="openDownloadModal(${app.id})">${app.version}</span></td>
+            <td>
+                <!-- Click Version opens INFO mode -->
+                <span class="apk-link" onclick="openInfoModal(${app.id})">${app.version}</span>
+            </td>
             <td>${app.size}</td>
             <td>${app.date}</td>
             <td>
+                <!-- Click Button opens DOWNLOAD mode -->
                 <button class="btn-download-trigger" onclick="openDownloadModal(${app.id})">Download</button>
             </td>
         `;
@@ -634,13 +652,7 @@ function renderAppTable() {
     });
 }
 
-function openDownloadModal(appId) {
-    const app = availableApps.find(a => a.id === appId);
-    if (!app) return;
-
-    const manualDiv = document.getElementById('manualDownloadDiv');
-    manualDiv.style.display = 'none';
-
+function populateModalData(app) {
     document.getElementById('modalAppName').innerText = app.name;
     document.getElementById('modalAppVersion').innerText = app.version;
     document.getElementById('modalAppAuthor').innerText = app.author;
@@ -652,9 +664,38 @@ function openDownloadModal(appId) {
     const manualLink = document.getElementById('manualDownloadLink');
     manualLink.href = app.filePath;
     manualLink.setAttribute('download', app.filename);
+}
 
-    const modal = document.getElementById('downloadModal');
-    modal.style.display = 'flex';
+// 🚀 FIXED: Opens Modal without Timer or Auto-Download
+function openInfoModal(appId) {
+    const app = availableApps.find(a => a.id === appId);
+    if (!app) return;
+
+    populateModalData(app);
+
+    document.getElementById('timerBoxContainer').style.display = 'none';
+    document.getElementById('manualDownloadDiv').style.display = 'none';
+    
+    const infoBtn = document.getElementById('infoModeDownloadBtn');
+    infoBtn.style.display = 'block';
+    infoBtn.onclick = function() { openDownloadModal(appId); };
+
+    document.getElementById('downloadModal').style.display = 'flex';
+    clearInterval(downloadInterval);
+}
+
+// 🚀 FIXED: Opens Modal WITH Timer and Triggers Download
+function openDownloadModal(appId) {
+    const app = availableApps.find(a => a.id === appId);
+    if (!app) return;
+
+    populateModalData(app);
+
+    document.getElementById('timerBoxContainer').style.display = 'block';
+    document.getElementById('manualDownloadDiv').style.display = 'none';
+    document.getElementById('infoModeDownloadBtn').style.display = 'none';
+
+    document.getElementById('downloadModal').style.display = 'flex';
 
     let timeLeft = 10;
     const timerDisplay = document.getElementById('downloadTimer');
@@ -667,8 +708,8 @@ function openDownloadModal(appId) {
 
         if (timeLeft <= 0) {
             clearInterval(downloadInterval);
-            manualDiv.style.display = 'block';
-            manualLink.click();
+            document.getElementById('manualDownloadDiv').style.display = 'block';
+            document.getElementById('manualDownloadLink').click();
         }
     }, 1000);
 }
