@@ -11,7 +11,7 @@
 <!-- External CSS -->
 <link rel="stylesheet" href="css/style.css">
 <style>
-/* Inline styling for Download Section & Modal */
+/* Inline styling for Download Section & Modal - Mobile Optimized */
 .download-table-container {
     width: 100%;
     max-width: 1000px;
@@ -21,6 +21,7 @@
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
     overflow-x: auto; 
     padding: 15px;
+    -webkit-overflow-scrolling: touch;
 }
 
 .apk-table {
@@ -68,7 +69,7 @@
     background-color: #1d4ed8;
 }
 
-/* Modal Styling */
+/* Modal Styling - Fully responsive for mobile */
 .download-modal-overlay {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
@@ -78,12 +79,15 @@
     justify-content: center;
     z-index: 10000;
     backdrop-filter: blur(4px);
+    padding: 15px;
 }
 
 .download-modal-card {
     background: #ffffff;
-    width: 90%;
+    width: 100%;
     max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
     border-radius: 12px;
     padding: 25px;
     position: relative;
@@ -97,6 +101,7 @@
     margin-bottom: 15px;
     border-bottom: 2px solid #f1f5f9;
     padding-bottom: 10px;
+    padding-right: 30px;
 }
 
 .timer-box {
@@ -123,6 +128,12 @@
     margin-bottom: 15px;
     font-size: 0.9rem;
     color: #475569;
+}
+
+@media (max-width: 480px) {
+    .app-info-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 .app-features-list {
@@ -197,7 +208,7 @@
     justify-content: center;
     z-index: 10001; 
     backdrop-filter: blur(5px);
-    padding: 20px;
+    padding: 15px;
 }
 .tutorial-modal-card {
     background: #ffffff;
@@ -554,7 +565,7 @@ function closeTutorialModal() {
 let downloadInterval = null;
 let availableApps = [];
 
-// 🚀 FIXED: Now pulls exact commit date from GitHub API so Android & PC always match!
+// 🚀 FIXED: Now pulls exact commit dates AND custom features directly from GitHub!
 async function loadAppsFromGitHub() {
     let localApps = JSON.parse(localStorage.getItem('pg_mobile_apps')) || [];
 
@@ -567,7 +578,16 @@ async function loadAppsFromGitHub() {
             const apkFiles = files.filter(f => f.name.endsWith('.apk'));
 
             if (apkFiles.length > 0) {
-                // Fetch commit details for each file to get the TRUE release date across all devices
+                // 1. Fetch manifest file to get unique version features globally
+                let globalManifest = {};
+                try {
+                    const manRes = await fetch('https://raw.githubusercontent.com/agravanteshawntezinzi-gif/phishguard-web/main/app/phishguard_manifest.json');
+                    if (manRes.ok) {
+                        globalManifest = await manRes.json();
+                    }
+                } catch(e) {}
+
+                // 2. Map files and assign exact features and real release dates
                 availableApps = await Promise.all(apkFiles.map(async (f, idx) => {
                     let matchingLocal = localApps.find(l => l.filename === f.name);
                     
@@ -586,6 +606,14 @@ async function loadAppsFromGitHub() {
                         }
                     } catch(e) { }
 
+                    // Apply features from manifest if they exist, otherwise fallback
+                    let customFeatures = globalManifest[f.name] || (matchingLocal ? matchingLocal.features : [
+                        "Real-time SMS inbox scanning",
+                        "Dual-SIM connection support",
+                        "Machine Learning threat detection",
+                        "Send deep-scan reports to Admin"
+                    ]);
+
                     return {
                         id: idx + 1,
                         name: "PhishGuard Mobile Security",
@@ -595,14 +623,12 @@ async function loadAppsFromGitHub() {
                         author: "PhishGuard Dev Team",
                         filename: f.name,
                         filePath: f.download_url,
-                        features: matchingLocal ? matchingLocal.features : [
-                            "Real-time SMS inbox scanning",
-                            "Dual-SIM connection support",
-                            "Machine Learning threat detection",
-                            "Send deep-scan reports to Admin"
-                        ]
+                        features: customFeatures
                     };
                 }));
+                
+                // Sort by version (highest ID first) to keep newest at top
+                availableApps.sort((a, b) => b.id - a.id);
                 renderAppTable();
                 return;
             }
@@ -666,7 +692,6 @@ function populateModalData(app) {
     manualLink.setAttribute('download', app.filename);
 }
 
-// 🚀 FIXED: Opens Modal without Timer or Auto-Download
 function openInfoModal(appId) {
     const app = availableApps.find(a => a.id === appId);
     if (!app) return;
@@ -684,7 +709,6 @@ function openInfoModal(appId) {
     clearInterval(downloadInterval);
 }
 
-// 🚀 FIXED: Opens Modal WITH Timer and Triggers Download
 function openDownloadModal(appId) {
     const app = availableApps.find(a => a.id === appId);
     if (!app) return;
