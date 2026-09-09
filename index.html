@@ -334,7 +334,6 @@
         </table>
     </div>
     
-    <!-- NEW TUTORIAL LINK -->
     <div class="tutorial-link-container">
         <span onclick="openTutorialModal()">How to install & fix Android restrictions</span>
     </div>
@@ -427,13 +426,14 @@
     <p>&copy; 2026 PhishGuard Anti-Phishing System. Built for academic research and protection.</p>
 </footer>
 
-<!-- DOWNLOAD COUNTDOWN & DETAILS MODAL -->
+<!-- DOWNLOAD COUNTDOWN & INFO MODAL -->
 <div class="download-modal-overlay" id="downloadModal">
     <div class="download-modal-card">
         <button class="modal-close-btn" onclick="closeDownloadModal()">&times;</button>
         <div class="download-modal-header" id="modalAppName">PhishGuard Mobile Security</div>
         
-        <div class="timer-box">
+        <!-- Timer Box (Hidden in Info Mode) -->
+        <div class="timer-box" id="timerBoxContainer">
             Your download will begin automatically in <span class="timer-count" id="downloadTimer">10</span> seconds...
         </div>
 
@@ -450,6 +450,9 @@
                 <!-- Features dynamically load here -->
             </ul>
         </div>
+
+        <!-- Download Button shown ONLY in Info Mode -->
+        <button class="btn-download-trigger" id="infoModeDownloadBtn" style="width: 100%; margin-top: 10px; display: none;">Download APK Now</button>
 
         <div class="manual-download-text" id="manualDownloadDiv">
             App didn't download? <a id="manualDownloadLink" href="#" download>Click here again</a>
@@ -584,7 +587,7 @@ async function loadAppsFromGitHub() {
                         const decodedContent = decodeURIComponent(escape(atob(manData.content.replace(/\s/g, ''))));
                         globalManifest = JSON.parse(decodedContent);
                     }
-                } catch(e) {}
+                } catch(e) { }
 
                 availableApps = await Promise.all(apkFiles.map(async (f, idx) => {
                     let matchingLocal = localApps.find(l => l.filename === f.name);
@@ -604,7 +607,6 @@ async function loadAppsFromGitHub() {
                         }
                     } catch(e) { }
 
-                    // 🔥 THE FIX: Explicitly assigns your exact features based on the version name
                     let fallbackFeatures = [
                         "Real-time SMS inbox scanning",
                         "Dual-SIM connection support",
@@ -676,12 +678,17 @@ function renderAppTable() {
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>
-                <span class="apk-link" onclick="openDownloadModal(${app.id})">${app.name}</span>
+                <!-- 🔥 FIX: Changed to openInfoModal so it DOES NOT auto-download -->
+                <span class="apk-link" onclick="openInfoModal(${app.id})">${app.name}</span>
             </td>
-            <td><span class="apk-link" onclick="openDownloadModal(${app.id})">${app.version}</span></td>
+            <td>
+                <!-- 🔥 FIX: Changed to openInfoModal so it DOES NOT auto-download -->
+                <span class="apk-link" onclick="openInfoModal(${app.id})">${app.version}</span>
+            </td>
             <td>${app.size}</td>
             <td>${app.date}</td>
             <td>
+                <!-- Click Button opens DOWNLOAD mode with timer -->
                 <button class="btn-download-trigger" onclick="openDownloadModal(${app.id})">Download</button>
             </td>
         `;
@@ -689,13 +696,7 @@ function renderAppTable() {
     });
 }
 
-function openDownloadModal(appId) {
-    const app = availableApps.find(a => a.id === appId);
-    if (!app) return;
-
-    const manualDiv = document.getElementById('manualDownloadDiv');
-    manualDiv.style.display = 'none';
-
+function populateModalData(app) {
     document.getElementById('modalAppName').innerText = app.name;
     document.getElementById('modalAppVersion').innerText = app.version;
     document.getElementById('modalAppAuthor').innerText = app.author;
@@ -707,9 +708,38 @@ function openDownloadModal(appId) {
     const manualLink = document.getElementById('manualDownloadLink');
     manualLink.href = app.filePath;
     manualLink.setAttribute('download', app.filename);
+}
 
-    const modal = document.getElementById('downloadModal');
-    modal.style.display = 'flex';
+// Opens Modal in INFO mode (No timer, No auto-download)
+function openInfoModal(appId) {
+    const app = availableApps.find(a => a.id === appId);
+    if (!app) return;
+
+    populateModalData(app);
+
+    document.getElementById('timerBoxContainer').style.display = 'none';
+    document.getElementById('manualDownloadDiv').style.display = 'none';
+    
+    const infoBtn = document.getElementById('infoModeDownloadBtn');
+    infoBtn.style.display = 'block';
+    infoBtn.onclick = function() { openDownloadModal(appId); };
+
+    document.getElementById('downloadModal').style.display = 'flex';
+    clearInterval(downloadInterval);
+}
+
+// Opens Modal in DOWNLOAD mode (Timer active, triggers download)
+function openDownloadModal(appId) {
+    const app = availableApps.find(a => a.id === appId);
+    if (!app) return;
+
+    populateModalData(app);
+
+    document.getElementById('timerBoxContainer').style.display = 'block';
+    document.getElementById('manualDownloadDiv').style.display = 'none';
+    document.getElementById('infoModeDownloadBtn').style.display = 'none';
+
+    document.getElementById('downloadModal').style.display = 'flex';
 
     let timeLeft = 10;
     const timerDisplay = document.getElementById('downloadTimer');
@@ -722,8 +752,8 @@ function openDownloadModal(appId) {
 
         if (timeLeft <= 0) {
             clearInterval(downloadInterval);
-            manualDiv.style.display = 'block';
-            manualLink.click();
+            document.getElementById('manualDownloadDiv').style.display = 'block';
+            document.getElementById('manualDownloadLink').click();
         }
     }, 1000);
 }
