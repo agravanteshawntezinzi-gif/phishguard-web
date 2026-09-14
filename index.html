@@ -552,12 +552,17 @@ function closeTutorialModal() {
 let downloadInterval = null;
 let availableApps = [];
 
+// Base URL of your PythonAnywhere server
+const PROXY_URL = "https://shawntezinzi.pythonanywhere.com/api/github_proxy?url=";
+
 async function loadAppsFromGitHub() {
     let localApps = JSON.parse(localStorage.getItem('pg_mobile_apps')) || [];
 
     try {
         const repoUrl = 'https://api.github.com/repos/agravanteshawntezinzi-gif/phishguard-web/contents/app';
-        const response = await fetch(repoUrl);
+        
+        // Pass the request through your secure Python proxy
+        const response = await fetch(PROXY_URL + encodeURIComponent(repoUrl));
         
         if (response.ok) {
             const files = await response.json();
@@ -567,8 +572,9 @@ async function loadAppsFromGitHub() {
                 let globalManifest = {};
                 try {
                     const cacheBuster = new Date().getTime();
-                    // FETCHING FROM JS FOLDER
-                    const manRes = await fetch(`https://api.github.com/repos/agravanteshawntezinzi-gif/phishguard-web/contents/js/phishguard_manifest.json?t=${cacheBuster}`);
+                    const manifestUrl = `https://api.github.com/repos/agravanteshawntezinzi-gif/phishguard-web/contents/js/phishguard_manifest.json?t=${cacheBuster}`;
+                    
+                    const manRes = await fetch(PROXY_URL + encodeURIComponent(manifestUrl));
                     
                     if (manRes.ok) {
                         const manData = await manRes.json();
@@ -585,7 +591,9 @@ async function loadAppsFromGitHub() {
 
                     let realDate = "Latest Release";
                     try {
-                        const commitRes = await fetch(`https://api.github.com/repos/agravanteshawntezinzi-gif/phishguard-web/commits?path=${f.path}`);
+                        const commitUrl = `https://api.github.com/repos/agravanteshawntezinzi-gif/phishguard-web/commits?path=${f.path}`;
+                        const commitRes = await fetch(PROXY_URL + encodeURIComponent(commitUrl));
+                        
                         if (commitRes.ok) {
                             const commitData = await commitRes.json();
                             if (commitData.length > 0) {
@@ -595,7 +603,6 @@ async function loadAppsFromGitHub() {
                         }
                     } catch(e) { }
 
-                    // OLD APPS FALLBACK PRESERVATION
                     let fallbackFeatures = [
                         "Real-time SMS inbox scanning",
                         "Dual-SIM connection support",
