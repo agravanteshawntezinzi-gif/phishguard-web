@@ -308,7 +308,6 @@
     </div>
 </section>
 
-<!-- DOWNLOAD MOBILE APP SECTION -->
 <section id="download">
     <h2 class="section-title">Download PhishGuard App</h2>
     <p class="section-subtitle">Get real-time SMS protection directly on your Android smartphone.</p>
@@ -337,10 +336,8 @@
     <div class="tutorial-link-container">
         <span onclick="openTutorialModal()">How to install & fix Android restrictions</span>
     </div>
-
 </section>
 
-<!-- LOCAL DEVICE HISTORY SECTION -->
 <section id="history">
     <h2 class="section-title">Your Recent Scans</h2>
     <p class="section-subtitle">For your privacy, these results are stored locally on your device and are not visible to other users.</p>
@@ -349,7 +346,6 @@
     </div>
 </section>
 
-<!-- HOW TO USE SECTION -->
 <section id="guide">
     <h2 class="section-title">How to Use PhishGuard</h2>
     <p class="section-subtitle">A simple guide to analyzing your messages.</p>
@@ -379,7 +375,6 @@
     </div>
 </section>
 
-<!-- PRIVACY POLICY SECTION -->
 <section id="policy">
     <h2 class="section-title">Privacy & Data Policy</h2>
     <p class="section-subtitle">Transparency in how we handle your information.</p>
@@ -401,7 +396,6 @@
     </div>
 </section>
 
-<!-- ABOUT SYSTEM SECTION -->
 <section id="about">
     <h2 class="section-title">System Architecture</h2>
     <p class="section-subtitle">PhishGuard is built for rigorous academic and practical application, utilizing an Agile methodology to adapt to emerging threats.</p>
@@ -426,13 +420,11 @@
     <p>&copy; 2026 PhishGuard Anti-Phishing System. Built for academic research and protection.</p>
 </footer>
 
-<!-- DOWNLOAD COUNTDOWN & INFO MODAL -->
 <div class="download-modal-overlay" id="downloadModal">
     <div class="download-modal-card">
         <button class="modal-close-btn" onclick="closeDownloadModal()">&times;</button>
         <div class="download-modal-header" id="modalAppName">PhishGuard Mobile Security</div>
         
-        <!-- Timer Box (Hidden in Info Mode) -->
         <div class="timer-box" id="timerBoxContainer">
             Your download will begin automatically in <span class="timer-count" id="downloadTimer">10</span> seconds...
         </div>
@@ -451,7 +443,6 @@
             </ul>
         </div>
 
-        <!-- Download Button shown ONLY in Info Mode -->
         <button class="btn-download-trigger" id="infoModeDownloadBtn" style="width: 100%; margin-top: 10px; display: none;">Download APK Now</button>
 
         <div class="manual-download-text" id="manualDownloadDiv">
@@ -460,7 +451,6 @@
     </div>
 </div>
 
-<!-- TERMS AND PRIVACY MODAL -->
 <div class="modal-overlay" id="termsModal">
     <div class="modal-box">
         <div class="modal-header">Terms of Service & Privacy Agreement</div>
@@ -493,7 +483,6 @@
     </div>
 </div>
 
-<!-- INSTALLATION TUTORIAL MODAL -->
 <div class="tutorial-modal-overlay" id="tutorialModal">
     <div class="tutorial-modal-card">
         <button class="modal-close-btn" onclick="closeTutorialModal()">&times;</button>
@@ -549,10 +538,8 @@
     </div>
 </div>
 
-<!-- External JS -->
 <script src="js/script.js"></script>
 
-<!-- Download Modal, Tutorial Modal & Cross-Device App Fetch Logic -->
 <script>
 function openTutorialModal() {
     document.getElementById('tutorialModal').style.display = 'flex';
@@ -580,7 +567,8 @@ async function loadAppsFromGitHub() {
                 let globalManifest = {};
                 try {
                     const cacheBuster = new Date().getTime();
-                    const manRes = await fetch(`https://api.github.com/repos/agravanteshawntezinzi-gif/phishguard-web/contents/app/phishguard_manifest.json?t=${cacheBuster}`);
+                    // FETCHING FROM JS FOLDER
+                    const manRes = await fetch(`https://api.github.com/repos/agravanteshawntezinzi-gif/phishguard-web/contents/js/phishguard_manifest.json?t=${cacheBuster}`);
                     
                     if (manRes.ok) {
                         const manData = await manRes.json();
@@ -607,6 +595,7 @@ async function loadAppsFromGitHub() {
                         }
                     } catch(e) { }
 
+                    // OLD APPS FALLBACK PRESERVATION
                     let fallbackFeatures = [
                         "Real-time SMS inbox scanning",
                         "Dual-SIM connection support",
@@ -628,6 +617,10 @@ async function loadAppsFromGitHub() {
                     } else if (f.name.includes("Stable") || f.name.includes("v1.0.0-Stable")) {
                         fallbackFeatures = [
                             "fix crash"
+                        ];
+                    } else if (f.name.includes("v1.0.1-Alpha")) {
+                        fallbackFeatures = [
+                            "Fix Deep Scan"
                         ];
                     }
 
@@ -678,17 +671,14 @@ function renderAppTable() {
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>
-                <!-- 🔥 FIX: Changed to openInfoModal so it DOES NOT auto-download -->
                 <span class="apk-link" onclick="openInfoModal(${app.id})">${app.name}</span>
             </td>
             <td>
-                <!-- 🔥 FIX: Changed to openInfoModal so it DOES NOT auto-download -->
                 <span class="apk-link" onclick="openInfoModal(${app.id})">${app.version}</span>
             </td>
             <td>${app.size}</td>
             <td>${app.date}</td>
             <td>
-                <!-- Click Button opens DOWNLOAD mode with timer -->
                 <button class="btn-download-trigger" onclick="openDownloadModal(${app.id})">Download</button>
             </td>
         `;
@@ -710,7 +700,6 @@ function populateModalData(app) {
     manualLink.setAttribute('download', app.filename);
 }
 
-// Opens Modal in INFO mode (No timer, No auto-download)
 function openInfoModal(appId) {
     const app = availableApps.find(a => a.id === appId);
     if (!app) return;
@@ -728,7 +717,6 @@ function openInfoModal(appId) {
     clearInterval(downloadInterval);
 }
 
-// Opens Modal in DOWNLOAD mode (Timer active, triggers download)
 function openDownloadModal(appId) {
     const app = availableApps.find(a => a.id === appId);
     if (!app) return;
