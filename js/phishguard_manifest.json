@@ -1,0 +1,9 @@
+{
+  "PhishGuard_v1.0.1_Beta.apk": [
+    "Added full Dark Mode UI support",
+    "Fixed missing SMS sync bug in Google Messages",
+    "Fixed permanent delete bug for Xiaomi/HyperOS",
+    "Added MMS and long-text notification placeholder",
+    "Polished UI and improved Settings padding controls"
+  ]
+}
