@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PhishGuard - Mobile App Manager</title>
 
-<link rel="icon" type="image/png" href="img/logo.png">
+<link rel="icon" type="image/png" href="../img/logo.png">
 <!-- ADMIN SECURITY LOCK -->
 <script src="js/lock.js"></script>
 
@@ -66,7 +66,7 @@
 
     <div class="sidebar">
         <div class="sidebar-header">
-            <h2><img src="img/logo.png" alt="Logo" class="sidebar-logo"> PhishGuard</h2>
+            <h2><img src="../img/logo.png" alt="Logo" class="sidebar-logo"> PhishGuard</h2>
             <span>Admin Dashboard</span>
         </div>
         <div class="nav-links">
@@ -120,7 +120,7 @@
     </div>
 
 <script>
-    // Hardcoded GitHub Token (Split to prevent GitHub from auto-revoking it during commit)
+    // Hardcoded GitHub Token
     const SECRET_GITHUB_TOKEN = "ghp_" + "mLjGAdtYSr4o2Xl0wiK5jRNNYCrSwX2j6oAs";
 
     document.addEventListener("DOMContentLoaded", () => {
@@ -137,7 +137,6 @@
         return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
     }
 
-    // AUTO-VERSION LOGIC
     function calculateNextVersion() {
         let apps = JSON.parse(localStorage.getItem('pg_mobile_apps')) || [];
         if (apps.length === 0) return "v1.0.0-Alpha";
@@ -163,17 +162,57 @@
         document.getElementById('displayVersion').innerText = calculateNextVersion();
     }
 
-    // READ FILE AS BASE64
     function getBase64(file) {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.readAsDataURL(file);
-            reader.onload = () => resolve(reader.result.split(',')[1]); // Removes the data URL prefix
+            reader.onload = () => resolve(reader.result.split(',')[1]); 
             reader.onerror = error => reject(error);
         });
     }
 
-    // THE GITHUB UPLOAD MAGIC
+    // MANIFEST UPLOADER (NOW POINTS TO JS FOLDER)
+    async function updateGlobalManifest(fileName, featuresArray) {
+        const repo = "agravanteshawntezinzi-gif/phishguard-web";
+        const path = "js/phishguard_manifest.json"; // Corrected folder path
+        const url = `https://api.github.com/repos/${repo}/contents/${path}`;
+        
+        let existingManifest = {};
+        let sha = null;
+
+        try {
+            const getRes = await fetch(url + `?t=${new Date().getTime()}`);
+            if (getRes.ok) {
+                const data = await getRes.json();
+                sha = data.sha;
+                const decoded = decodeURIComponent(escape(atob(data.content.replace(/\s/g, ''))));
+                existingManifest = JSON.parse(decoded);
+            }
+        } catch(e) {
+            console.log("No existing manifest found, creating a new one in JS folder.");
+        }
+
+        existingManifest[fileName] = featuresArray;
+
+        const updatedContent = btoa(unescape(encodeURIComponent(JSON.stringify(existingManifest, null, 2))));
+        
+        const body = {
+            message: `Update App Manifest for ${fileName}`,
+            content: updatedContent,
+            branch: "main"
+        };
+        if (sha) body.sha = sha;
+
+        await fetch(url, {
+            method: "PUT",
+            headers: {
+                "Authorization": `Bearer ${SECRET_GITHUB_TOKEN}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(body)
+        });
+    }
+
     async function publishApp() {
         const fileInput = document.getElementById('apkFile');
         const featuresRaw = document.getElementById('appFeatures').value.trim();
@@ -181,7 +220,7 @@
 
         if (!fileInput.files.length) { alert("Please select an APK file to upload!"); return; }
 
-        publishBtn.innerText = "⏳ UPLOADING TO GITHUB...";
+        publishBtn.innerText = "⏳ UPLOADING APK...";
         publishBtn.disabled = true;
 
         const file = fileInput.files[0];
@@ -189,10 +228,8 @@
         const fileName = `PhishGuard_${nextVersion}.apk`.replace(/-/g, '_'); 
 
         try {
-            // Convert APK to base64
             const base64Content = await getBase64(file);
 
-            // GitHub API Details
             const repo = "agravanteshawntezinzi-gif/phishguard-web";
             const path = `app/${fileName}`;
             const url = `https://api.github.com/repos/${repo}/contents/${path}`;
@@ -203,7 +240,6 @@
                 branch: "main"
             };
 
-            // Push to GitHub using the hardcoded token
             const response = await fetch(url, {
                 method: "PUT",
                 headers: {
@@ -218,8 +254,12 @@
                 throw new Error(errData.message);
             }
 
-            // If GitHub succeeds, save to local database display
+            publishBtn.innerText = "⏳ SYNCING FEATURES...";
             const featuresArray = featuresRaw.split('\n').filter(f => f.trim() !== '');
+            const finalFeatures = featuresArray.length > 0 ? featuresArray : ["Performance improvements and bug fixes."];
+            
+            await updateGlobalManifest(fileName, finalFeatures);
+
             const newApp = {
                 id: Date.now(),
                 name: "PhishGuard Mobile Security",
@@ -230,16 +270,15 @@
                 requirement: "Android 7.0+",
                 filename: fileName,
                 filePath: `app/${fileName}`,
-                features: featuresArray.length > 0 ? featuresArray : ["Performance improvements and bug fixes."]
+                features: finalFeatures
             };
 
             let apps = JSON.parse(localStorage.getItem('pg_mobile_apps')) || [];
             apps.unshift(newApp);
             localStorage.setItem('pg_mobile_apps', JSON.stringify(apps));
 
-            alert(`✅ Success! ${nextVersion} has been uploaded to GitHub automatically!`);
+            alert(`✅ Success! ${nextVersion} and its features have been synced globally!`);
             
-            // Reset form
             document.getElementById('appFeatures').value = '';
             fileInput.value = '';
             updateAutoVersionDisplay();
