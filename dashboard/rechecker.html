@@ -44,6 +44,10 @@
     .mode-btn { padding: 10px 20px; border: none; background: transparent; border-radius: 25px; cursor: pointer; font-weight: bold; color: #666; transition: 0.3s; }
     .mode-btn.active { background: var(--primary); color: white; box-shadow: 0 2px 8px rgba(26, 115, 232, 0.4); }
 
+    /* NEW SORT BUTTON */
+    .sort-btn { background: #e8f0fe; color: var(--primary); border: 1px solid var(--primary); padding: 5px 12px; border-radius: 15px; font-size: 12px; font-weight: bold; cursor: pointer; transition: 0.3s; margin-left: 15px;}
+    .sort-btn:hover { background: var(--primary); color: white; }
+
     /* CONTAINER */
     .container { max-width: 1000px; margin: 0 auto; background: white; padding: 40px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); width: 100%; box-sizing: border-box;}
     h1 { text-align: center; color: var(--primary); font-weight: 700; margin-bottom: 5px; }
@@ -98,7 +102,6 @@
         </div>
         <div class="nav-links">
             <a href="dashboard.html" class="nav-link">📊 System Analytics</a>
-            <!-- Removed Scanner and Settings Links -->
             <a href="feeder.html" class="nav-link">📁 CSV Data Feeder</a>
             <a href="rechecker.html" class="nav-link active">✏️ Data Rechecker</a>
             <a href="mobile_app.html" class="nav-link">📱 Mobile App</a>
@@ -109,7 +112,14 @@
 
     <div class="main-content">
         <div class="header-controls">
-            <h2>Data Operations</h2>
+            <div style="display: flex; align-items: center;">
+                <div>
+                    <h2>Data Operations</h2>
+                    <p style="margin: 5px 0 0 0; color: var(--text-muted); font-size: 14px;">Manage database conflicts and labels.</p>
+                </div>
+                <!-- THE NEW SORT BUTTON -->
+                <button id="sortToggleBtn" class="sort-btn" onclick="toggleSort()">⬇️ Newest First</button>
+            </div>
             <div class="mode-toggle">
                 <button class="mode-btn active" id="btnModeManual" onclick="switchMode('manual')">✏️ Manual Check</button>
                 <button class="mode-btn" id="btnModeConflict" onclick="switchMode('conflict')">⚖️ Data Conflicts</button>
@@ -159,6 +169,11 @@
 <script>
     const BASE_URL = "https://shawntezinzi.pythonanywhere.com";
 
+    // GLOBAL VARIABLES FOR SORTING STATE
+    let globalData = [];
+    let globalMode = '';
+    let sortDesc = true; // True = Newest First
+
     function switchMode(mode) {
         document.getElementById('btnModeManual').classList.remove('active');
         document.getElementById('btnModeConflict').classList.remove('active');
@@ -170,7 +185,11 @@
         document.getElementById('panelReport').classList.add('hidden');
         document.getElementById('panelHarvest').classList.add('hidden');
 
-        document.getElementById('cardsContainer').innerHTML = ''; 
+        document.getElementById('cardsContainer').innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: #888; margin-top: 40px;"><h3>Select an operation mode above to begin.</h3></div>'; 
+        
+        // Clear data when switching tabs so old data doesn't render
+        globalData = [];
+        globalMode = '';
 
         if(mode === 'manual') {
             document.getElementById('btnModeManual').classList.add('active');
@@ -187,35 +206,36 @@
         }
     }
 
-    async function fetchManualRows() {
-        const inputStr = document.getElementById('rowNumbers').value;
-        if (!inputStr) { alert("Please enter the row numbers."); return; }
+    // THE NEW SORT TOGGLE FUNCTION
+    function toggleSort() {
+        sortDesc = !sortDesc;
+        const btn = document.getElementById('sortToggleBtn');
+        btn.innerHTML = sortDesc ? "⬇️ Newest First" : "⬆️ Oldest First";
+        
+        if (globalData.length > 0) {
+            renderCards(); // Re-render the cards instantly without re-fetching from Python
+        }
+    }
 
-        const rows = inputStr.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n));
-        if (rows.length === 0) { alert("No valid numbers found."); return; }
-
+    // THE CENTRALIZED RENDER FUNCTION
+    function renderCards() {
         const container = document.getElementById('cardsContainer');
-        container.innerHTML = '<div style="grid-column: 1/-1; text-align:center;"><h3>Searching database... ⏳</h3></div>';
+        container.innerHTML = '';
 
-        try {
-            // Added x-api-key header for security
-            const response = await fetch(`${BASE_URL}/feeder/api/get_specific_rows`, {
-                method: "POST", 
-                headers: { 
-                    "Content-Type": "application/json",
-                    "x-api-key": "phishguard12345"
-                }, 
-                body: JSON.stringify({ rows: rows })
-            });
-            const data = await response.json();
-            if (data.status === "error") throw new Error(data.message);
-            if (data.data.length === 0) {
-                container.innerHTML = '<div style="grid-column: 1/-1; text-align:center;"><h3 style="color:var(--scam);">No data found for those rows.</h3></div>';
-                return;
-            }
+        // Create a copy of the data and apply the sort
+        let displayData = [...globalData];
+        if (sortDesc) {
+            displayData.reverse(); // Reverses the array to show newest at the top
+        }
 
-            container.innerHTML = '';
-            data.data.forEach(item => {
+        if (displayData.length === 0) {
+            container.innerHTML = '<div style="grid-column: 1/-1; text-align:center;"><h3 style="color:var(--safe);">All clear! No items to display.</h3></div>';
+            return;
+        }
+
+        // Render HTML based on the active mode
+        if (globalMode === 'manual') {
+            displayData.forEach((item, index) => {
                 let cardClass = "unknown"; let icon = "⚠️ UNKNOWN"; let color = "#555";
                 if(item.current_label === "SCAM") { cardClass = "scam"; icon = "🚨 SCAM"; color = "var(--scam)";}
                 if(item.current_label === "SPAM") { cardClass = "spam"; icon = "📧 SPAM"; color = "var(--spam)";}
@@ -239,34 +259,11 @@
                         <div id="success-manual-${item.id}" class="overlay-success">✅ Saved to Database!</div>
                     </div>`;
             });
-        } catch (err) { container.innerHTML = `<h3>Error: ${err.message}</h3>`; }
-    }
-
-    async function fetchConflicts() {
-        const container = document.getElementById('cardsContainer');
-        container.innerHTML = '<div style="grid-column: 1/-1; text-align:center;"><h3>Scanning the entire database... ⏳</h3></div>';
-
-        try {
-            // Added x-api-key header for security
-            const response = await fetch(`${BASE_URL}/conflict/api/get_conflicts`, {
-                headers: { "x-api-key": "phishguard12345" }
-            });
-            const data = await response.json();
-            
-            if (data.status === "error") throw new Error(data.message);
-            
-            const standardConflicts = data.data.filter(item => !item.is_user_report);
-
-            if (standardConflicts.length === 0) {
-                container.innerHTML = '<div style="grid-column: 1/-1; text-align:center;"><h2 style="color:var(--safe);">✅ Database is clean! No standard conflicts found.</h2></div>';
-                return;
-            }
-
-            container.innerHTML = `<div style="grid-column: 1/-1; text-align:center;"><h3 style="color:#e91e63;">Found ${standardConflicts.length} Conflicting Texts!</h3></div>`;
-            
-            standardConflicts.forEach((item, index) => {
+        } 
+        else if (globalMode === 'conflict') {
+            container.innerHTML = `<div style="grid-column: 1/-1; text-align:center;"><h3 style="color:#e91e63;">Found ${displayData.length} Conflicting Texts!</h3></div>`;
+            displayData.forEach((item, index) => {
                 const encodedText = btoa(unescape(encodeURIComponent(item.sms_text)));
-                
                 container.innerHTML += `
                     <div class="result-section conflict" id="card-conflict-${index}">
                         <div id="content-conflict-${index}" style="display: flex; flex-direction: column; height: 100%;">
@@ -290,34 +287,11 @@
                         <div id="success-conflict-${index}" class="overlay-success"></div>
                     </div>`;
             });
-        } catch (err) { container.innerHTML = `<h3>Error: ${err.message}</h3>`; }
-    }
-
-    async function fetchReports() {
-        const container = document.getElementById('cardsContainer');
-        container.innerHTML = '<div style="grid-column: 1/-1; text-align:center;"><h3>Fetching User Reports... ⏳</h3></div>';
-
-        try {
-            // Added x-api-key header for security
-            const response = await fetch(`${BASE_URL}/conflict/api/get_conflicts`, {
-                headers: { "x-api-key": "phishguard12345" }
-            });
-            const data = await response.json();
-            
-            if (data.status === "error") throw new Error(data.message);
-            
-            const appReports = data.data.filter(item => item.is_user_report);
-
-            if (appReports.length === 0) {
-                container.innerHTML = '<div style="grid-column: 1/-1; text-align:center;"><h2 style="color:var(--safe);">✅ No pending user reports!</h2></div>';
-                return;
-            }
-
-            container.innerHTML = `<div style="grid-column: 1/-1; text-align:center;"><h3 style="color:var(--sidebar);">${appReports.length} Pending User Reports</h3></div>`;
-
-            appReports.forEach((item, index) => {
+        } 
+        else if (globalMode === 'report') {
+            container.innerHTML = `<div style="grid-column: 1/-1; text-align:center;"><h3 style="color:var(--sidebar);">${displayData.length} Pending User Reports</h3></div>`;
+            displayData.forEach((item, index) => {
                 const encodedText = btoa(unescape(encodeURIComponent(item.sms_text)));
-                
                 let aiGuess = item.conflicting_labels.find(l => l.startsWith("AI Guessed")) || "AI Guessed: UNKNOWN";
                 let userReport = item.conflicting_labels.find(l => l.startsWith("User Reported")) || "User Reported: UNKNOWN";
 
@@ -343,30 +317,10 @@
                         <div id="success-report-${index}" class="overlay-success"></div>
                     </div>`;
             });
-        } catch (err) { container.innerHTML = `<h3>Error: ${err.message}</h3>`; }
-    }
-
-    async function fetchRawLogs() {
-        const container = document.getElementById('cardsContainer');
-        container.innerHTML = '<div style="grid-column: 1/-1; text-align:center;"><h3>Scanning Raw Logs for Unseen Messages... ⏳</h3></div>';
-
-        try {
-            // Added x-api-key header for security
-            const response = await fetch(`${BASE_URL}/conflict/api/get_unseen_raw`, {
-                headers: { "x-api-key": "phishguard12345" }
-            });
-            const data = await response.json();
-            
-            if (data.status === "error") throw new Error(data.message);
-
-            if (data.data.length === 0) {
-                container.innerHTML = '<div style="grid-column: 1/-1; text-align:center;"><h2 style="color:var(--safe);">✅ No new messages to harvest! Your AI knows everything currently in the logs.</h2></div>';
-                return;
-            }
-
-            container.innerHTML = `<div style="grid-column: 1/-1; text-align:center;"><h3 style="color:#1a73e8;">Found ${data.data.length} New Unique Messages!</h3></div>`;
-
-            data.data.forEach((item, index) => {
+        } 
+        else if (globalMode === 'harvest') {
+            container.innerHTML = `<div style="grid-column: 1/-1; text-align:center;"><h3 style="color:#1a73e8;">Found ${displayData.length} New Unique Messages!</h3></div>`;
+            displayData.forEach((item, index) => {
                 const encodedText = btoa(unescape(encodeURIComponent(item.sms_text)));
                 let guessColor = "#555";
                 if(item.ai_label === "SAFE") guessColor = "var(--safe)";
@@ -396,6 +350,111 @@
                         <div id="success-harvest-${index}" class="overlay-success"></div>
                     </div>`;
             });
+        }
+    }
+
+    async function fetchManualRows() {
+        const inputStr = document.getElementById('rowNumbers').value;
+        if (!inputStr) { alert("Please enter the row numbers."); return; }
+
+        const rows = inputStr.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n));
+        if (rows.length === 0) { alert("No valid numbers found."); return; }
+
+        const container = document.getElementById('cardsContainer');
+        container.innerHTML = '<div style="grid-column: 1/-1; text-align:center;"><h3>Searching database... ⏳</h3></div>';
+
+        try {
+            const response = await fetch(`${BASE_URL}/feeder/api/get_specific_rows`, {
+                method: "POST", 
+                headers: { 
+                    "Content-Type": "application/json",
+                    "x-api-key": "phishguard12345"
+                }, 
+                body: JSON.stringify({ rows: rows })
+            });
+            const data = await response.json();
+            if (data.status === "error") throw new Error(data.message);
+            if (data.data.length === 0) {
+                container.innerHTML = '<div style="grid-column: 1/-1; text-align:center;"><h3 style="color:var(--scam);">No data found for those rows.</h3></div>';
+                return;
+            }
+
+            globalData = data.data;
+            globalMode = 'manual';
+            renderCards();
+        } catch (err) { container.innerHTML = `<h3>Error: ${err.message}</h3>`; }
+    }
+
+    async function fetchConflicts() {
+        const container = document.getElementById('cardsContainer');
+        container.innerHTML = '<div style="grid-column: 1/-1; text-align:center;"><h3>Scanning the entire database... ⏳</h3></div>';
+
+        try {
+            const response = await fetch(`${BASE_URL}/conflict/api/get_conflicts`, {
+                headers: { "x-api-key": "phishguard12345" }
+            });
+            const data = await response.json();
+            
+            if (data.status === "error") throw new Error(data.message);
+            
+            const standardConflicts = data.data.filter(item => !item.is_user_report);
+
+            if (standardConflicts.length === 0) {
+                container.innerHTML = '<div style="grid-column: 1/-1; text-align:center;"><h2 style="color:var(--safe);">✅ Database is clean! No standard conflicts found.</h2></div>';
+                return;
+            }
+
+            globalData = standardConflicts;
+            globalMode = 'conflict';
+            renderCards();
+        } catch (err) { container.innerHTML = `<h3>Error: ${err.message}</h3>`; }
+    }
+
+    async function fetchReports() {
+        const container = document.getElementById('cardsContainer');
+        container.innerHTML = '<div style="grid-column: 1/-1; text-align:center;"><h3>Fetching User Reports... ⏳</h3></div>';
+
+        try {
+            const response = await fetch(`${BASE_URL}/conflict/api/get_conflicts`, {
+                headers: { "x-api-key": "phishguard12345" }
+            });
+            const data = await response.json();
+            
+            if (data.status === "error") throw new Error(data.message);
+            
+            const appReports = data.data.filter(item => item.is_user_report);
+
+            if (appReports.length === 0) {
+                container.innerHTML = '<div style="grid-column: 1/-1; text-align:center;"><h2 style="color:var(--safe);">✅ No pending user reports!</h2></div>';
+                return;
+            }
+
+            globalData = appReports;
+            globalMode = 'report';
+            renderCards();
+        } catch (err) { container.innerHTML = `<h3>Error: ${err.message}</h3>`; }
+    }
+
+    async function fetchRawLogs() {
+        const container = document.getElementById('cardsContainer');
+        container.innerHTML = '<div style="grid-column: 1/-1; text-align:center;"><h3>Scanning Raw Logs for Unseen Messages... ⏳</h3></div>';
+
+        try {
+            const response = await fetch(`${BASE_URL}/conflict/api/get_unseen_raw`, {
+                headers: { "x-api-key": "phishguard12345" }
+            });
+            const data = await response.json();
+            
+            if (data.status === "error") throw new Error(data.message);
+
+            if (data.data.length === 0) {
+                container.innerHTML = '<div style="grid-column: 1/-1; text-align:center;"><h2 style="color:var(--safe);">✅ No new messages to harvest! Your AI knows everything currently in the logs.</h2></div>';
+                return;
+            }
+
+            globalData = data.data;
+            globalMode = 'harvest';
+            renderCards();
         } catch (err) { container.innerHTML = `<h3>Error: ${err.message}</h3>`; }
     }
 
@@ -403,7 +462,6 @@
         try {
             const rawText = decodeURIComponent(escape(atob(encodedText)));
             
-            // Added x-api-key header for security
             const response = await fetch(`${BASE_URL}/conflict/api/resolve_conflict_bulk`, {
                 method: "POST", 
                 headers: { 
@@ -415,6 +473,9 @@
             
             const data = await response.json();
             if (data.status === "error") throw new Error(data.message);
+
+            // Remove it from globalData so it doesn't come back if we hit "Sort" again
+            globalData = globalData.filter(item => item.sms_text !== rawText);
 
             document.getElementById(`content-${elementId}`).style.display = 'none';
             
@@ -433,7 +494,6 @@
 
     async function updateLabel(rowId, newLabel) {
         try {
-            // Added x-api-key header for security
             const response = await fetch(`${BASE_URL}/feeder/api/update_row_label`, {
                 method: "POST", 
                 headers: { 
@@ -444,6 +504,9 @@
             });
             const data = await response.json();
             if (data.status === "error") throw new Error(data.message);
+
+            // Remove it from globalData so it doesn't come back if we hit "Sort" again
+            globalData = globalData.filter(item => item.id !== rowId);
 
             document.getElementById(`content-manual-${rowId}`).style.display = 'none';
             document.getElementById(`success-manual-${rowId}`).style.display = 'block';
