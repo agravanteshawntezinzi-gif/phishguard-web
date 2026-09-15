@@ -113,7 +113,7 @@
             <div class="panel app-list-view">
                 <h3>📦 Current Uploaded Releases</h3>
                 <div id="appListContainer">
-                    <!-- Apps inject here -->
+                    <div style="text-align: center; padding: 40px; color: #888;">Syncing with GitHub... ⏳</div>
                 </div>
             </div>
         </div>
@@ -124,8 +124,12 @@
     const SECRET_GITHUB_TOKEN = "ghp_" + "mLjGAdtYSr4o2Xl0wiK5jRNNYCrSwX2j6oAs";
 
     document.addEventListener("DOMContentLoaded", () => {
+        // I-load agad ang laman ng local storage para mabilis
         renderAppList();
         updateAutoVersionDisplay();
+        
+        // At saka i-sync sa GitHub para makuha ang totoong files (Kahit anong device pa ito)
+        syncAppsFromGitHub();
     });
 
     function formatBytes(bytes, decimals = 2) {
@@ -171,10 +175,68 @@
         });
     }
 
-    // MANIFEST UPLOADER (NOW POINTS TO JS FOLDER)
+    // 🔥 FIX: Global Sync Function para sa Admin Dashboard
+    async function syncAppsFromGitHub() {
+        try {
+            const repoUrl = 'https://api.github.com/repos/agravanteshawntezinzi-gif/phishguard-web/contents/app';
+            const response = await fetch(repoUrl, {
+                headers: { "Authorization": `Bearer ${SECRET_GITHUB_TOKEN}` }
+            });
+
+            if (response.ok) {
+                const files = await response.json();
+                const apkFiles = files.filter(f => f.name.endsWith('.apk'));
+
+                let globalManifest = {};
+                try {
+                    const cacheBuster = new Date().getTime();
+                    const manRes = await fetch(`https://api.github.com/repos/agravanteshawntezinzi-gif/phishguard-web/contents/js/phishguard_manifest.json?t=${cacheBuster}`, {
+                        headers: { "Authorization": `Bearer ${SECRET_GITHUB_TOKEN}` }
+                    });
+                    if (manRes.ok) {
+                        const manData = await manRes.json();
+                        const decodedContent = decodeURIComponent(escape(atob(manData.content.replace(/\s/g, ''))));
+                        globalManifest = JSON.parse(decodedContent);
+                    }
+                } catch(e) {}
+
+                let syncedApps = apkFiles.map((f, idx) => {
+                    let verClean = f.name.replace('PhishGuard_', '').replace('.apk', '').replace(/_/g, '-');
+                    if (!verClean.startsWith('v')) verClean = 'v' + verClean;
+                    
+                    let customFeatures = globalManifest[f.name] || ["Performance improvements and bug fixes."];
+
+                    return {
+                        id: Date.now() + idx,
+                        name: "PhishGuard Mobile Security",
+                        version: verClean,
+                        size: f.size ? (f.size / (1024 * 1024)).toFixed(1) + " MB" : "15.0 MB",
+                        date: "GitHub Verified Release",
+                        author: "PhishGuard Dev Team",
+                        requirement: "Android 7.0+",
+                        filename: f.name,
+                        filePath: f.download_url,
+                        features: customFeatures
+                    };
+                });
+
+                // I-sort pababa para yung pinaka-latest version ang nasa itaas
+                syncedApps.sort((a, b) => b.version.localeCompare(a.version));
+
+                // I-save sa browser storage para gamitin sa susunod
+                localStorage.setItem('pg_mobile_apps', JSON.stringify(syncedApps));
+                
+                renderAppList();
+                updateAutoVersionDisplay();
+            }
+        } catch (err) {
+            console.error("Failed to sync from GitHub:", err);
+        }
+    }
+
     async function updateGlobalManifest(fileName, featuresArray) {
         const repo = "agravanteshawntezinzi-gif/phishguard-web";
-        const path = "js/phishguard_manifest.json"; // Corrected folder path
+        const path = "js/phishguard_manifest.json"; 
         const url = `https://api.github.com/repos/${repo}/contents/${path}`;
         
         let existingManifest = {};
@@ -260,29 +322,13 @@
             
             await updateGlobalManifest(fileName, finalFeatures);
 
-            const newApp = {
-                id: Date.now(),
-                name: "PhishGuard Mobile Security",
-                version: nextVersion,
-                size: formatBytes(file.size),
-                date: new Date().toISOString().split('T')[0],
-                author: "PhishGuard Dev Team",
-                requirement: "Android 7.0+",
-                filename: fileName,
-                filePath: `app/${fileName}`,
-                features: finalFeatures
-            };
-
-            let apps = JSON.parse(localStorage.getItem('pg_mobile_apps')) || [];
-            apps.unshift(newApp);
-            localStorage.setItem('pg_mobile_apps', JSON.stringify(apps));
-
             alert(`✅ Success! ${nextVersion} and its features have been synced globally!`);
             
             document.getElementById('appFeatures').value = '';
             fileInput.value = '';
-            updateAutoVersionDisplay();
-            renderAppList();
+            
+            // Sync from GitHub again to refresh the list safely
+            await syncAppsFromGitHub();
 
         } catch (error) {
             alert("❌ GitHub Upload Failed: " + error.message);
@@ -293,7 +339,7 @@
     }
 
     function deleteApp(id) {
-        if (confirm("Remove this release from the UI? (Note: You still need to delete the file on GitHub manually if you want it gone forever)")) {
+        if (confirm("Remove this release from the UI? (Note: It will reappear if you refresh because it syncs with GitHub. You must delete the file on GitHub manually to permanently remove it.)")) {
             let apps = JSON.parse(localStorage.getItem('pg_mobile_apps')) || [];
             apps = apps.filter(app => app.id !== id);
             localStorage.setItem('pg_mobile_apps', JSON.stringify(apps));
@@ -318,7 +364,6 @@
                     <div class="app-details">
                         <h4>${app.name} <span class="badge">${app.version}</span></h4>
                         <p><strong>Filename:</strong> ${app.filename} &nbsp;|&nbsp; <strong>Size:</strong> ${app.size}</p>
-                        <p><strong>Released:</strong> ${app.date} &nbsp;|&nbsp; <strong>Author:</strong> ${app.author}</p>
                         <p style="margin-top: 8px;"><strong>Features:</strong> ${app.features.join(', ')}</p>
                     </div>
                     <div>
