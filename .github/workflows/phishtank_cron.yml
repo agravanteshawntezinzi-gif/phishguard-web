@@ -1,0 +1,31 @@
+name: Update PhishTank Data
+
+# Wakes up every 12 hours automatically
+on:
+  schedule:
+    - cron: '0 */12 * * *'
+  workflow_dispatch: # Allows you to click a button to run it manually
+
+jobs:
+  update-data:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Run Extraction Script
+        run: python scripts/update_phishtank.py
+
+      - name: Commit and Push to GitHub (Bypassing Netlify)
+        run: |
+          git config --global user.name "PhishGuard-Bot"
+          git config --global user.email "bot@phishguard.local"
+          git add phishtank_domains.txt
+          # The [skip ci] tag stops Netlify from wasting your build limits!
+          git commit -m "Automated PhishTank Update [skip ci]" || exit 0
+          git push
