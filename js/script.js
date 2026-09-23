@@ -1,6 +1,52 @@
-// =========================================
-// LOCAL HISTORY LOGIC (PRIVACY FIRST)
-// =========================================
+document.addEventListener("DOMContentLoaded", () => {
+    const navItems = document.querySelectorAll(".nav-links a");
+    const sections = document.querySelectorAll("section");
+
+    navItems.forEach(item => {
+        item.addEventListener("click", function() {
+            navItems.forEach(i => i.classList.remove("active"));
+            this.classList.add("active");
+        });
+    });
+
+    window.addEventListener("scroll", () => {
+        let currentSectionId = "";
+        const scrollPosition = window.pageYOffset + 150;
+
+        sections.forEach(sec => {
+            const top = sec.offsetTop;
+            const height = sec.offsetHeight;
+            if (scrollPosition >= top && scrollPosition < top + height) {
+                currentSectionId = sec.getAttribute("id");
+            }
+        });
+
+        if (currentSectionId) {
+            navItems.forEach(item => {
+                item.classList.remove("active");
+                if (item.getAttribute("href") === `#${currentSectionId}`) {
+                    item.classList.add("active");
+                }
+            });
+        }
+    });
+    
+    loadLocalHistory();
+    loadAppsFromGitHub();
+});
+
+function toggleIncognito() {
+    const isIncognito = document.getElementById('incognitoToggle').checked;
+    const smsText = document.getElementById('smsText');
+    if (isIncognito) {
+        smsText.placeholder = "You are in incognito mode. All scans won't be saved here or in the server database.";
+        smsText.classList.add('incognito-active');
+    } else {
+        smsText.placeholder = "Type or paste the SMS text here... You can also drag & drop multiple screenshots!";
+        smsText.classList.remove('incognito-active');
+    }
+}
+
 function loadLocalHistory() {
     const historyList = document.getElementById("historyList");
     let localHistory = JSON.parse(localStorage.getItem('phishguard_local_history') || '[]');
@@ -26,24 +72,17 @@ function saveToLocalHistory(label, text) {
     let localHistory = JSON.parse(localStorage.getItem('phishguard_local_history') || '[]');
     let shortText = text.length > 80 ? text.substring(0, 80) + "..." : text;
     
-    // Add new item to the beginning
     localHistory.unshift({ label: label, text: shortText });
     
-    // Keep only the last 15 scans to save space
     if (localHistory.length > 15) {
         localHistory = localHistory.slice(0, 15);
     }
     
     localStorage.setItem('phishguard_local_history', JSON.stringify(localHistory));
-    loadLocalHistory(); // Refresh the list
+    loadLocalHistory();
 }
 
-// Load local history on startup
-document.addEventListener("DOMContentLoaded", loadLocalHistory);
-
-// =========================================
-// TERMS & PRIVACY MODAL LOGIC
-// =========================================
+// SCAN BUTTON PART AND ENCRYPTION/PRIVACY LOGIC
 function checkAgreementAndScan() {
     const rawText = document.getElementById('smsText').value.trim();
     if (!rawText && imageQueue.length === 0) { 
@@ -51,8 +90,10 @@ function checkAgreementAndScan() {
         return; 
     }
 
-    if (localStorage.getItem('phishguard_agreed') === 'true') {
-        startMasterProcess(); 
+    const isIncognito = document.getElementById('incognitoToggle').checked;
+
+    if (isIncognito || localStorage.getItem('phishguard_agreed') === 'true') {
+        startMasterProcess(isIncognito); 
     } else {
         document.getElementById('termsModal').style.display = 'flex';
         document.getElementById('agreeTerms').checked = false;
@@ -68,7 +109,6 @@ function toggleAcceptBtn() {
 
 function declineTerms() {
     document.getElementById('termsModal').style.display = 'none';
-    // Scan is cancelled, return to normal state
 }
 
 function acceptTerms() {
@@ -77,12 +117,9 @@ function acceptTerms() {
         localStorage.setItem('phishguard_agreed', 'true');
     }
     document.getElementById('termsModal').style.display = 'none';
-    startMasterProcess(); 
+    startMasterProcess(false); 
 }
 
-// =========================================
-// STATE MANAGEMENT & UI LOCKING
-// =========================================
 let isScanning = false;
 let imageQueue = [];
 let scanCompleted = false;
@@ -101,6 +138,7 @@ function setUIState(scanning) {
     const scanBtn = document.getElementById('scanBtn');
     const clearBtn = document.getElementById('clearTrigger');
     const uploadBtn = document.getElementById('uploadTrigger');
+    const incToggle = document.getElementById('incognitoToggle');
 
     if (scanning) {
         textInput.disabled = true;
@@ -110,6 +148,7 @@ function setUIState(scanning) {
         clearBtn.style.opacity = '0.5';
         uploadBtn.style.pointerEvents = 'none';
         uploadBtn.style.opacity = '0.5';
+        incToggle.disabled = true;
         scanBtn.disabled = true;
         scanBtn.classList.add("loading");
     } else {
@@ -120,6 +159,7 @@ function setUIState(scanning) {
         clearBtn.style.opacity = '1';
         uploadBtn.style.pointerEvents = 'auto';
         uploadBtn.style.opacity = '1';
+        incToggle.disabled = false;
         scanBtn.disabled = false;
         scanBtn.classList.remove("loading");
         scanBtn.innerText = "SCAN MESSAGES NOW";
@@ -134,9 +174,6 @@ function clearWorkspace() {
     document.getElementById('carouselArea').style.display='none'; 
 }
 
-// =========================================
-// 1. IMAGE QUEUE LOGIC & AUTO-CLEAR FLAG
-// =========================================
 function autoResetWorkspace() {
     if (scanCompleted && !isScanning) {
         document.getElementById('smsText').value = '';
@@ -228,10 +265,7 @@ function fileToBase64(file) {
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-// =========================================
-// 2. MASTER SCAN FUNCTION (BATCH PROCESSING)
-// =========================================
-async function startMasterProcess() {
+async function startMasterProcess(isIncognito) {
     if(isScanning) return; 
 
     setUIState(true); 
@@ -254,11 +288,8 @@ async function startMasterProcess() {
                 const data = await res.json();
                 if(data.status === "success") {
                     extractedTexts.push(data.extracted_text);
-                } else {
-                    console.error("OCR Error:", data.message);
                 }
             } catch(err) {
-                console.error("Image Error:", err.message);
             }
             await sleep(1000); 
         }
@@ -273,10 +304,10 @@ async function startMasterProcess() {
         renderQueue(); 
     }
 
-    await startBatchTextScan();
+    await startBatchTextScan(isIncognito);
 }
 
-async function startBatchTextScan() {
+async function startBatchTextScan(isIncognito) {
     const scanBtn = document.getElementById('scanBtn');
     const carouselArea = document.getElementById('carouselArea');
 
@@ -305,7 +336,7 @@ async function startBatchTextScan() {
             const res = await fetch(`https://shawntezinzi.pythonanywhere.com/core/scan`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text: msg })
+                body: JSON.stringify({ text: msg, incognito: isIncognito })
             });
             let rawData = await res.json();
             
@@ -315,8 +346,9 @@ async function startBatchTextScan() {
             
             updateCard(cardId, data, msg);
             
-            // SAVE TO LOCAL HISTORY (Client-Side Privacy)
-            saveToLocalHistory((data.predicted || "UNKNOWN").toUpperCase(), msg);
+            if (!isIncognito) {
+                saveToLocalHistory((data.predicted || "UNKNOWN").toUpperCase(), msg);
+            }
 
         } catch (err) {
             document.getElementById(cardId).innerHTML = `<h3 class="status-label" style="color:#d93025;">❌ Error</h3><p>${err.message}</p>`;
@@ -369,10 +401,8 @@ function updateCard(cardId, data, originalText) {
         let ipStr = (data.dns_ip && data.dns_ip !== "None" && data.dns_ip !== "") ? data.dns_ip : 'Protected / Firewall';
         detailsBox += `<span><b>🌐 Server IP:</b> ${ipStr}</span>`;
         
-        // --- VISUAL UI FIX IS HERE ---
         let dbHit = (data.phishing_db == 1) ? "<b style='color:#d93025'>YES (Blacklisted)</b>" : "No";
         detailsBox += `<span><b>🏴‍☠️ In PhishTank:</b> ${dbHit}</span>`;
-        // -----------------------------
         
         detailsBox += `</div>`;
         
@@ -429,8 +459,179 @@ async function submitFeedback(rowId, isCorrect, predictedLabel) {
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({ row_id: rowId, correct: isCorrect, type: final_label })
         });
-        console.log(`Feedback for row ${rowId} sent to Admin Conflictor.`);
     } catch(err){
         alert("❌ Error saving feedback.");
     }
+}
+
+function openTutorialModal() { document.getElementById('tutorialModal').style.display = 'flex'; }
+function closeTutorialModal() { document.getElementById('tutorialModal').style.display = 'none'; }
+function closeDownloadModal() { clearInterval(downloadInterval); document.getElementById('downloadModal').style.display = 'none'; }
+
+let downloadInterval = null;
+let availableApps = [];
+const PROXY_URL = "https://shawntezinzi.pythonanywhere.com/api/github_proxy?url=";
+
+async function loadAppsFromGitHub() {
+    let localApps = JSON.parse(localStorage.getItem('pg_mobile_apps')) || [];
+
+    try {
+        const repoUrl = 'https://api.github.com/repos/agravanteshawntezinzi-gif/phishguard-web/contents/app';
+        const response = await fetch(PROXY_URL + encodeURIComponent(repoUrl));
+        
+        if (response.ok) {
+            const files = await response.json();
+            const apkFiles = files.filter(f => f.name.endsWith('.apk'));
+
+            if (apkFiles.length > 0) {
+                let globalManifest = {};
+                try {
+                    const cacheBuster = new Date().getTime();
+                    const manifestUrl = `https://api.github.com/repos/agravanteshawntezinzi-gif/phishguard-web/contents/js/phishguard_manifest.json?t=${cacheBuster}`;
+                    const manRes = await fetch(PROXY_URL + encodeURIComponent(manifestUrl));
+                    if (manRes.ok) {
+                        const manData = await manRes.json();
+                        const decodedContent = decodeURIComponent(escape(atob(manData.content.replace(/\s/g, ''))));
+                        globalManifest = JSON.parse(decodedContent);
+                    }
+                } catch(e) { }
+
+                availableApps = await Promise.all(apkFiles.map(async (f, idx) => {
+                    let matchingLocal = localApps.find(l => l.filename === f.name);
+                    let verClean = f.name.replace('PhishGuard_', '').replace('.apk', '').replace(/_/g, '-');
+                    if (!verClean.startsWith('v')) verClean = 'v' + verClean;
+
+                    let realDate = "Latest Release";
+                    try {
+                        const commitUrl = `https://api.github.com/repos/agravanteshawntezinzi-gif/phishguard-web/commits?path=${f.path}`;
+                        const commitRes = await fetch(PROXY_URL + encodeURIComponent(commitUrl));
+                        if (commitRes.ok) {
+                            const commitData = await commitRes.json();
+                            if (commitData.length > 0) {
+                                const d = new Date(commitData[0].commit.author.date);
+                                realDate = d.toISOString().split('T')[0];
+                            }
+                        }
+                    } catch(e) { }
+
+                    let fallbackFeatures = [
+                        "Real-time SMS inbox scanning",
+                        "Dual-SIM connection support",
+                        "Machine Learning threat detection",
+                        "Send deep-scan reports to Admin"
+                    ];
+
+                    if (f.name.includes("Beta") || f.name.includes("v1.0.0-Beta")) {
+                        fallbackFeatures = [
+                            "Added automatic background scanning.",
+                            "Notifications show color-coded threats.",
+                            "Reply directly from notifications.",
+                            "Replies use the correct SIM.",
+                            "Added dynamic recent contacts list.",
+                            "Inbox updates in real time.",
+                            "Fixed camera cutout UI overlap.",
+                            "Added native ripple click effects."
+                        ];
+                    } else if (f.name.includes("Stable") || f.name.includes("v1.0.0-Stable")) {
+                        fallbackFeatures = ["fix crash"];
+                    } else if (f.name.includes("v1.0.1-Alpha")) {
+                        fallbackFeatures = ["Fix Deep Scan"];
+                    }
+
+                    let customFeatures = globalManifest[f.name] || (matchingLocal ? matchingLocal.features : fallbackFeatures);
+
+                    return {
+                        id: idx + 1,
+                        name: "PhishGuard Mobile Security",
+                        version: matchingLocal ? matchingLocal.version : verClean,
+                        size: matchingLocal ? matchingLocal.size : (f.size ? (f.size / (1024 * 1024)).toFixed(1) + " MB" : "15.0 MB"),
+                        date: realDate !== "Latest Release" ? realDate : (matchingLocal ? matchingLocal.date : "Latest Release"),
+                        author: "PhishGuard Dev Team",
+                        filename: f.name,
+                        filePath: f.download_url,
+                        features: customFeatures
+                    };
+                }));
+                
+                availableApps.sort((a, b) => b.id - a.id);
+                renderAppTable();
+                return;
+            }
+        }
+    } catch (err) {
+    }
+
+    availableApps = localApps;
+    renderAppTable();
+}
+
+function renderAppTable() {
+    const tbody = document.getElementById('appTableBody');
+    if (!tbody) return;
+
+    if (availableApps.length === 0) {
+        tbody.innerHTML = `<tr id="emptyAppRow"><td colspan="5" style="text-align: center; color: #94a3b8; padding: 25px;">No mobile application releases available yet.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = '';
+    availableApps.forEach(app => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><span class="apk-link" onclick="openInfoModal(${app.id})">${app.name}</span></td>
+            <td><span class="apk-link" onclick="openInfoModal(${app.id})">${app.version}</span></td>
+            <td>${app.size}</td>
+            <td>${app.date}</td>
+            <td><button class="btn-download-trigger" onclick="openDownloadModal(${app.id})">Download</button></td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function populateModalData(app) {
+    document.getElementById('modalAppName').innerText = app.name;
+    document.getElementById('modalAppVersion').innerText = app.version;
+    document.getElementById('modalAppAuthor').innerText = app.author;
+    document.getElementById('modalAppSize').innerText = app.size;
+    document.getElementById('modalAppFeatures').innerHTML = app.features.map(f => `<li>${f}</li>`).join('');
+    
+    const manualLink = document.getElementById('manualDownloadLink');
+    manualLink.href = app.filePath;
+    manualLink.setAttribute('download', app.filename);
+}
+
+function openInfoModal(appId) {
+    const app = availableApps.find(a => a.id === appId);
+    if (!app) return;
+    populateModalData(app);
+    document.getElementById('timerBoxContainer').style.display = 'none';
+    document.getElementById('manualDownloadDiv').style.display = 'none';
+    const infoBtn = document.getElementById('infoModeDownloadBtn');
+    infoBtn.style.display = 'block';
+    infoBtn.onclick = function() { openDownloadModal(appId); };
+    document.getElementById('downloadModal').style.display = 'flex';
+    clearInterval(downloadInterval);
+}
+
+function openDownloadModal(appId) {
+    const app = availableApps.find(a => a.id === appId);
+    if (!app) return;
+    populateModalData(app);
+    document.getElementById('timerBoxContainer').style.display = 'block';
+    document.getElementById('manualDownloadDiv').style.display = 'none';
+    document.getElementById('infoModeDownloadBtn').style.display = 'none';
+    document.getElementById('downloadModal').style.display = 'flex';
+    let timeLeft = 10;
+    const timerDisplay = document.getElementById('downloadTimer');
+    timerDisplay.innerText = timeLeft;
+    clearInterval(downloadInterval);
+    downloadInterval = setInterval(() => {
+        timeLeft--;
+        timerDisplay.innerText = timeLeft;
+        if (timeLeft <= 0) {
+            clearInterval(downloadInterval);
+            document.getElementById('manualDownloadDiv').style.display = 'block';
+            document.getElementById('manualDownloadLink').click();
+        }
+    }, 1000);
 }
