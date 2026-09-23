@@ -2,6 +2,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const navItems = document.querySelectorAll(".nav-links a");
     const sections = document.querySelectorAll("section");
 
+    if (localStorage.getItem('phishguard_agreed') === 'true') {
+        document.getElementById('agreedBanner').style.display = 'block';
+    }
+
     navItems.forEach(item => {
         item.addEventListener("click", function() {
             navItems.forEach(i => i.classList.remove("active"));
@@ -10,25 +14,20 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     window.addEventListener("scroll", () => {
-        let currentSectionId = "";
-        const scrollPosition = window.pageYOffset + 150;
-
+        let currentSection = "";
         sections.forEach(sec => {
-            const top = sec.offsetTop;
-            const height = sec.offsetHeight;
-            if (scrollPosition >= top && scrollPosition < top + height) {
-                currentSectionId = sec.getAttribute("id");
+            const sectionTop = sec.offsetTop;
+            if (window.scrollY >= (sectionTop - 150)) {
+                currentSection = sec.getAttribute("id");
             }
         });
 
-        if (currentSectionId) {
-            navItems.forEach(item => {
-                item.classList.remove("active");
-                if (item.getAttribute("href") === `#${currentSectionId}`) {
-                    item.classList.add("active");
-                }
-            });
-        }
+        navItems.forEach(li => {
+            li.classList.remove("active");
+            if (li.getAttribute("href") === `#${currentSection}`) {
+                li.classList.add("active");
+            }
+        });
     });
     
     loadLocalHistory();
@@ -115,6 +114,7 @@ function acceptTerms() {
     const dontShowAgain = document.getElementById('dontShowAgain').checked;
     if (dontShowAgain) {
         localStorage.setItem('phishguard_agreed', 'true');
+        document.getElementById('agreedBanner').style.display = 'block';
     }
     document.getElementById('termsModal').style.display = 'none';
     startMasterProcess(false); 
