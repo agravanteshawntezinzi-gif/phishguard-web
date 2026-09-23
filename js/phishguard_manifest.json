@@ -5,5 +5,8 @@
     "Fixed permanent delete bug for Xiaomi/HyperOS",
     "Added MMS and long-text notification placeholder",
     "Polished UI and improved Settings padding controls"
+  ],
+  "PhishGuard_v1.0.1_Stable.apk": [
+    "Fix UI"
   ]
 }
