@@ -11,5 +11,10 @@
   ],
   "PhishGuard_v1.0.2_Alpha.apk": [
     "Fix UI Layout"
+  ],
+  "PhishGuard_v1.0.2_Beta.apk": [
+    "Fix UI",
+    "Fix Terms And Privacy",
+    "Fix Layout"
   ]
 }
