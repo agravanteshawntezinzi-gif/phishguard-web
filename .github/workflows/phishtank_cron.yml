@@ -23,6 +23,10 @@ jobs:
         with:
           python-version: '3.10'
 
+      # NEW: Installs the library needed to push data to your server
+      - name: Install dependencies
+        run: pip install requests
+
       - name: Run Extraction Script
         run: python scripts/update_phishtank.py
 
