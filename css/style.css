@@ -22,7 +22,7 @@ body { font-family: 'Inter', sans-serif; background: #f4f7f6; margin: 0; padding
     border-radius: 6px;
 }
 .nav-links a:hover { color: #1a73e8; }
-.nav-links a.active { color: #1a73e8; background-color: #e8f0fe; }
+.nav-links a.active { color: #1a73e8 !important; background-color: #e8f0fe !important; }
 
 .nav-btn { background: #1a73e8; color: white !important; padding: 8px 20px; border-radius: 20px; transition: background 0.3s; }
 .nav-btn:hover { background: #1557b0; }
