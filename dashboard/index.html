@@ -157,6 +157,12 @@
         background: #1557b0; 
         transform: translateY(-2px); 
     }
+    button.submit-btn:disabled {
+        background: #a0c3ff;
+        cursor: not-allowed;
+        box-shadow: none;
+        transform: none;
+    }
     
     .error-msg {
         color: #d93025; 
@@ -241,17 +247,51 @@
             }
         }
 
-        // 3. LOGIN LOGIC
-        function handleLogin() {
+        // 3. SECURE API LOGIN LOGIC
+        async function handleLogin() {
             const user = document.getElementById('username').value;
             const pass = document.getElementById('password').value;
+            const errorMsg = document.getElementById('errorMsg');
+            const submitBtn = document.querySelector('.submit-btn');
             
-            if(user === 'phishguardadmin' && pass === 'phishguard12345') {
-                localStorage.setItem('pg_admin_auth', 'true');
-                localStorage.setItem('pg_admin_expiry', Date.now() + 3600000);
-                window.location.replace('dashboard.html');
-            } else {
-                document.getElementById('errorMsg').style.display = 'block';
+            if (!user || !pass) {
+                errorMsg.innerText = "❌ Please enter both username and password.";
+                errorMsg.style.display = 'block';
+                return;
+            }
+            
+            // Show loading state
+            submitBtn.innerText = "Verifying...";
+            submitBtn.disabled = true;
+            errorMsg.style.display = 'none';
+            
+            try {
+                // Send credentials securely to PythonAnywhere
+                const response = await fetch('https://shawntezinzi.pythonanywhere.com/api/admin_login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: user, password: pass })
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    // Server approved! Save auth token and redirect to dashboard
+                    localStorage.setItem('pg_admin_auth', 'true');
+                    localStorage.setItem('pg_admin_expiry', Date.now() + 3600000); // 1 Hour Expiry Limit
+                    window.location.replace('dashboard.html');
+                } else {
+                    // Server rejected
+                    errorMsg.innerText = "❌ " + (data.error || "Invalid username or password.");
+                    errorMsg.style.display = 'block';
+                }
+            } catch (err) {
+                errorMsg.innerText = "❌ Server connection failed. Please try again.";
+                errorMsg.style.display = 'block';
+            } finally {
+                // Reset button state
+                submitBtn.innerText = "Secure Login";
+                submitBtn.disabled = false;
             }
         }
         
