@@ -81,7 +81,6 @@ function saveToLocalHistory(label, text) {
     loadLocalHistory();
 }
 
-// SCAN BUTTON PART AND ENCRYPTION/PRIVACY LOGIC
 function checkAgreementAndScan() {
     const rawText = document.getElementById('smsText').value.trim();
     if (!rawText && imageQueue.length === 0) { 
@@ -376,16 +375,14 @@ function updateCard(cardId, data, originalText) {
     let sourceStr = data.decision_source || "UNKNOWN";
     let confHtml = '';
 
+    // Handle the Confidence Bar Display - Removed Ugly Sources
     if (sourceStr === "INPUT FILTER") {
-        confHtml = `<p style="margin-bottom: 2px; font-size:14px;"><b>📊 Confidence Level:</b> N/A (Filtered)</p>
+        confHtml = `<p style="margin-bottom: 2px; font-size:14px; font-weight: bold; color: #333;">📊 Confidence Level: N/A (Filtered)</p>
                     <div class="confidence-bar"><div style="height:100%; width:0%; background:#5f6368;"></div></div>`;
-    } else if (sourceStr === "GEMINI AI" || sourceStr.includes("CLOUD")) {
-        confHtml = `<p style="margin-bottom: 2px; font-size:14px;"><b>📊 Confidence Level:</b> N/A (Cloud Evaluation)</p>
-                    <div class="confidence-bar"><div style="height:100%; width:0%; background:#1a73e8;"></div></div>`;
     } else {
-        let confPercent = data.confidence ? (parseFloat(data.confidence) * 100).toFixed(2) : 0;
+        let confPercent = data.confidence ? parseFloat(data.confidence) : 0;
         let bg = confPercent > 75 ? "#1e8e3e" : "#fbbc05";
-        confHtml = `<p style="margin-bottom: 2px; font-size:14px;"><b>📊 Confidence Level:</b> ${confPercent}%</p>
+        confHtml = `<p style="margin-bottom: 2px; font-size:14px; font-weight: bold; color: #333;">📊 Confidence Level: ${confPercent}%</p>
                     <div class="confidence-bar"><div style="height:100%; width:${confPercent}%; background:${bg};"></div></div>`;
     }
 
@@ -412,6 +409,7 @@ function updateCard(cardId, data, originalText) {
     card.className = `result-section ${cardClass}`;
     let descriptionText = data.description || "Unknown status";
 
+    // Cleaned HTML Layout Output
     card.innerHTML = `
         <h3 class="status-label">${icon}</h3>
         <p style="font-style: italic; color: #555; margin-bottom: 15px; font-size: 15px;">${descriptionText}</p>
@@ -419,8 +417,6 @@ function updateCard(cardId, data, originalText) {
         
         ${detectedLinkHtml}
         
-        <p style="font-size:14px; margin-bottom:5px;"><b>⚖️ Source:</b> <span style="color:#1a73e8; font-weight:600;">${sourceStr.replace("GEMINI AI", "CLOUD ANALYSIS").replace("CLOUD AI BATCH", "CLOUD BATCH ANALYSIS").replace("CLOUD AI SINGLE", "CLOUD ANALYSIS")}</span></p>
-        <p style="font-size:14px; margin-bottom:8px;"><b>🔍 Local SVM:</b> <span>${data.svm_result || "N/A"}</span></p>
         ${confHtml}
         
         <hr style="border: 0; border-top: 1px solid #eaeaea; margin: 20px 0;">
