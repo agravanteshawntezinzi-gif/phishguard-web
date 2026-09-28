@@ -16,5 +16,8 @@
     "Fix UI",
     "Fix Terms And Privacy",
     "Fix Layout"
+  ],
+  "PhishGuard_v1.0.2_Stable.apk": [
+    "Fix bug in Zoom in and out"
   ]
 }
