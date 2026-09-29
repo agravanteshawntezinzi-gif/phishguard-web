@@ -25,5 +25,8 @@
   ],
   "PhishGuard_v1.0.3_Beta.apk": [
     "Fix the 10 filter bug and Zoom in and out"
+  ],
+  "PhishGuard_v1.0.3_Stable.apk": [
+    "fake update demo"
   ]
 }
