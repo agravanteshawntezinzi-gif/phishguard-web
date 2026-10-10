@@ -41,12 +41,15 @@
     .form-group label { display: block; font-size: 13px; font-weight: bold; margin-bottom: 5px; color: #555; }
     .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-family: inherit;}
     .form-group textarea { resize: vertical; height: 80px; }
+    
+    /* MODIFIED VERSION BOX */
+    .version-input-box { background: #e8f0fe; border: 1px solid #1a73e8; padding: 12px; border-radius: 6px; margin-bottom: 20px; }
+    .version-input-box label { color: #1a73e8; display: block; text-align: center; font-size: 13px; font-weight: bold; margin-bottom: 5px;}
+    .version-input-box input { width: 100%; background: transparent; border: none; text-align: center; font-size: 18px; font-weight: bold; color: #1a73e8; outline: none;}
+
     .btn-action { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; margin-top: 10px; font-size: 15px;}
     .btn-action:hover { background: #1557b0; }
     .btn-action:disabled { background: #ccc; cursor: not-allowed; }
-
-    /* AUTO VERSION DISPLAY */
-    .auto-version-box { background: #e8f0fe; border: 1px solid #1a73e8; color: #1a73e8; padding: 12px; border-radius: 6px; font-size: 16px; font-weight: bold; text-align: center; margin-bottom: 20px;}
 
     /* APP LIST (RIGHT) */
     .app-list-view { flex: 2; display: flex; flex-direction: column; min-height: 500px;}
@@ -92,9 +95,9 @@
             <div class="panel control-panel">
                 <h3>🚀 Auto-Deploy</h3>
                 
-                <div class="auto-version-box">
-                    Next Auto-Version:<br>
-                    <span id="displayVersion">Calculating...</span>
+                <div class="version-input-box">
+                    <label>Version Name (You can edit this!)</label>
+                    <input type="text" id="displayVersion" value="Calculating...">
                 </div>
 
                 <div class="form-group">
@@ -121,6 +124,7 @@
     </div>
 
 <script>
+    // KUNG NAKA-ERROR 401 ANG GITHUB MO, GUMAWA KA NG BAGONG TOKEN AT PALITAN ITO:
     const SECRET_GITHUB_TOKEN = "ghp_" + "mLjGAdtYSr4o2Xl0wiK5jRNNYCrSwX2j6oAs";
 
     document.addEventListener("DOMContentLoaded", () => {
@@ -128,15 +132,6 @@
         updateAutoVersionDisplay();
         syncAppsFromGitHub();
     });
-
-    function formatBytes(bytes, decimals = 2) {
-        if (bytes === 0) return '0 Bytes';
-        const k = 1024;
-        const dm = decimals < 0 ? 0 : decimals;
-        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
-    }
 
     function calculateNextVersion() {
         let apps = JSON.parse(localStorage.getItem('pg_mobile_apps')) || [];
@@ -160,7 +155,7 @@
     }
 
     function updateAutoVersionDisplay() {
-        document.getElementById('displayVersion').innerText = calculateNextVersion();
+        document.getElementById('displayVersion').value = calculateNextVersion();
     }
 
     function getBase64(file) {
@@ -174,7 +169,6 @@
 
     async function syncAppsFromGitHub() {
         try {
-            // CACHE-BUSTER FIX: Pwersado ang GitHub API na magbigay ng fresh data
             const cacheBuster = new Date().getTime();
             const repoUrl = `https://api.github.com/repos/agravanteshawntezinzi-gif/phishguard-web/contents/app?t=${cacheBuster}`;
             
@@ -207,7 +201,6 @@
                 let syncedApps = apkFiles.map((f, idx) => {
                     let verClean = f.name.replace('PhishGuard_', '').replace('.apk', '').replace(/_/g, '-');
                     if (!verClean.startsWith('v')) verClean = 'v' + verClean;
-                    
                     let customFeatures = globalManifest[f.name] || ["In-App Over-the-Air (OTA) Updates via GitHub API"];
 
                     return {
@@ -215,9 +208,7 @@
                         name: "PhishGuard Mobile Security",
                         version: verClean,
                         size: f.size ? (f.size / (1024 * 1024)).toFixed(1) + " MB" : "15.0 MB",
-                        date: "GitHub Verified Release",
-                        author: "PhishGuard Dev Team",
-                        requirement: "Android 7.0+",
+                        date: "GitHub Verified",
                         filename: f.name,
                         filePath: f.download_url,
                         gitPath: f.path,
@@ -232,10 +223,13 @@
                 renderAppList();
                 updateAutoVersionDisplay();
             } else if (response.status === 404) {
-                // If the app folder doesn't exist or is empty
+                // Walang laman ang folder, i-reset
                 localStorage.setItem('pg_mobile_apps', JSON.stringify([]));
                 renderAppList();
                 updateAutoVersionDisplay();
+            } else if (response.status === 401) {
+                // 🚨 ITO YUNG DAHILAN KUNG BAKIT NAG-BUG!
+                alert("🚨 GITHUB TOKEN ERROR: The GitHub API Token is revoked or invalid. You need to generate a new Personal Access Token in GitHub and paste it in the SECRET_GITHUB_TOKEN variable.");
             }
         } catch (err) {
             console.error("Failed to sync from GitHub:", err);
@@ -292,18 +286,21 @@
         publishBtn.disabled = true;
 
         const file = fileInput.files[0];
-        const nextVersion = calculateNextVersion();
+        
+        // GINAGAMIT NA NATIN YUNG TINYPE MO SA TEXTBOX KESA SA AUTO-CALCULATOR
+        let nextVersion = document.getElementById('displayVersion').value.trim();
+        if(!nextVersion.startsWith('v')) nextVersion = 'v' + nextVersion;
+        
         const fileName = `PhishGuard_${nextVersion}.apk`.replace(/-/g, '_'); 
 
         try {
             const base64Content = await getBase64(file);
-
             const repo = "agravanteshawntezinzi-gif/phishguard-web";
             const path = `app/${fileName}`;
             const url = `https://api.github.com/repos/${repo}/contents/${path}`;
 
             const body = {
-                message: `Auto-Uploaded ${nextVersion} via PhishGuard Dashboard`,
+                message: `Uploaded ${nextVersion} via Admin Dashboard`,
                 content: base64Content,
                 branch: "main"
             };
@@ -318,6 +315,7 @@
             });
 
             if (!response.ok) {
+                if(response.status === 401) alert("Upload Failed: Token Revoked.");
                 const errData = await response.json();
                 throw new Error(errData.message);
             }
@@ -328,7 +326,7 @@
             
             await updateGlobalManifest(fileName, finalFeatures);
 
-            alert(`✅ Success! ${nextVersion} and its features have been synced globally!`);
+            alert(`✅ Success! ${nextVersion} has been uploaded to GitHub!`);
             
             document.getElementById('appFeatures').value = '';
             fileInput.value = '';
@@ -344,7 +342,7 @@
     }
 
     async function deleteAppFromGitHub(id, gitPath, gitSha, filename, btnElement) {
-        if (confirm(`⚠️ WARNING: Are you sure you want to PERMANENTLY DELETE ${filename} from GitHub? This action cannot be undone.`)) {
+        if (confirm(`⚠️ WARNING: Are you sure you want to PERMANENTLY DELETE ${filename} from GitHub?`)) {
             
             btnElement.innerText = "⏳ Deleting...";
             btnElement.disabled = true;
@@ -369,7 +367,6 @@
                 });
 
                 if (response.ok) {
-                    // FIX: Set a 2-second delay before syncing to allow GitHub to flush its internal cache
                     setTimeout(async () => {
                         await syncAppsFromGitHub();
                         alert(`✅ Successfully deleted ${filename} from GitHub!`);
@@ -406,7 +403,7 @@
                         <p style="margin-top: 8px;"><strong>Features:</strong> ${app.features.join(', ')}</p>
                     </div>
                     <div>
-                        <button class="btn-delete" onclick="deleteAppFromGitHub(${app.id}, '${app.gitPath}', '${app.gitSha}', '${app.filename}', this)">🗑️ Delete from Server</button>
+                        <button class="btn-delete" onclick="deleteAppFromGitHub(${app.id}, '${app.gitPath}', '${app.gitSha}', '${app.filename}', this)">🗑️ Delete</button>
                     </div>
                 </div>
             `;
