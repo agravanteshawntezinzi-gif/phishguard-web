@@ -117,21 +117,31 @@
             <div class="panel app-list-view">
                 <h3>📦 Current Uploaded Releases</h3>
                 <div id="appListContainer">
-                    <div style="text-align: center; padding: 40px; color: #888;">Syncing with GitHub... ⏳</div>
+                    <div style="text-align: center; padding: 40px; color: #888;">Syncing with Server... ⏳</div>
                 </div>
             </div>
         </div>
     </div>
 
 <script>
-    // KUNG NAKA-ERROR 401 ANG GITHUB MO, GUMAWA KA NG BAGONG TOKEN AT PALITAN ITO:
-    const SECRET_GITHUB_TOKEN = "ghp_" + "mLjGAdtYSr4o2Xl0wiK5jRNNYCrSwX2j6oAs";
+    // 🛡️ NO MORE GITHUB TOKEN HERE! 
+    // It now routes securely through your PythonAnywhere Backend proxy.
+    const PYTHONANYWHERE_PROXY = "https://shawntezinzi.pythonanywhere.com/api/github_proxy?url=";
 
     document.addEventListener("DOMContentLoaded", () => {
         renderAppList();
         updateAutoVersionDisplay();
-        syncAppsFromGitHub();
+        syncAppsFromServer();
     });
+
+    function formatBytes(bytes, decimals = 2) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const dm = decimals < 0 ? 0 : decimals;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+    }
 
     function calculateNextVersion() {
         let apps = JSON.parse(localStorage.getItem('pg_mobile_apps')) || [];
@@ -167,17 +177,12 @@
         });
     }
 
-    async function syncAppsFromGitHub() {
+    async function syncAppsFromServer() {
         try {
             const cacheBuster = new Date().getTime();
-            const repoUrl = `https://api.github.com/repos/agravanteshawntezinzi-gif/phishguard-web/contents/app?t=${cacheBuster}`;
+            const targetUrl = encodeURIComponent(`https://api.github.com/repos/agravanteshawntezinzi-gif/phishguard-web/contents/app?t=${cacheBuster}`);
             
-            const response = await fetch(repoUrl, {
-                headers: { 
-                    "Authorization": `Bearer ${SECRET_GITHUB_TOKEN}`,
-                    "Cache-Control": "no-cache"
-                }
-            });
+            const response = await fetch(PYTHONANYWHERE_PROXY + targetUrl);
 
             if (response.ok) {
                 const files = await response.json();
@@ -185,12 +190,8 @@
 
                 let globalManifest = {};
                 try {
-                    const manRes = await fetch(`https://api.github.com/repos/agravanteshawntezinzi-gif/phishguard-web/contents/js/phishguard_manifest.json?t=${cacheBuster}`, {
-                        headers: { 
-                            "Authorization": `Bearer ${SECRET_GITHUB_TOKEN}`,
-                            "Cache-Control": "no-cache"
-                        }
-                    });
+                    const manifestUrl = encodeURIComponent(`https://api.github.com/repos/agravanteshawntezinzi-gif/phishguard-web/contents/js/phishguard_manifest.json?t=${cacheBuster}`);
+                    const manRes = await fetch(PYTHONANYWHERE_PROXY + manifestUrl);
                     if (manRes.ok) {
                         const manData = await manRes.json();
                         const decodedContent = decodeURIComponent(escape(atob(manData.content.replace(/\s/g, ''))));
@@ -223,29 +224,27 @@
                 renderAppList();
                 updateAutoVersionDisplay();
             } else if (response.status === 404) {
-                // Walang laman ang folder, i-reset
                 localStorage.setItem('pg_mobile_apps', JSON.stringify([]));
                 renderAppList();
                 updateAutoVersionDisplay();
-            } else if (response.status === 401) {
-                // 🚨 ITO YUNG DAHILAN KUNG BAKIT NAG-BUG!
-                alert("🚨 GITHUB TOKEN ERROR: The GitHub API Token is revoked or invalid. You need to generate a new Personal Access Token in GitHub and paste it in the SECRET_GITHUB_TOKEN variable.");
+            } else if (response.status === 401 || response.status === 403) {
+                alert("🚨 SERVER ERROR: The GitHub Token in your PythonAnywhere .env file might be missing or expired.");
             }
         } catch (err) {
-            console.error("Failed to sync from GitHub:", err);
+            console.error("Failed to sync from Server:", err);
         }
     }
 
     async function updateGlobalManifest(fileName, featuresArray) {
-        const repo = "agravanteshawntezinzi-gif/phishguard-web";
         const path = "js/phishguard_manifest.json"; 
-        const url = `https://api.github.com/repos/${repo}/contents/${path}`;
+        const targetUrl = `https://api.github.com/repos/agravanteshawntezinzi-gif/phishguard-web/contents/${path}`;
         
         let existingManifest = {};
         let sha = null;
 
         try {
-            const getRes = await fetch(url + `?t=${new Date().getTime()}`);
+            const getUrl = encodeURIComponent(targetUrl + `?t=${new Date().getTime()}`);
+            const getRes = await fetch(PYTHONANYWHERE_PROXY + getUrl);
             if (getRes.ok) {
                 const data = await getRes.json();
                 sha = data.sha;
@@ -265,12 +264,9 @@
         };
         if (sha) body.sha = sha;
 
-        await fetch(url, {
+        await fetch(PYTHONANYWHERE_PROXY + encodeURIComponent(targetUrl), {
             method: "PUT",
-            headers: {
-                "Authorization": `Bearer ${SECRET_GITHUB_TOKEN}`,
-                "Content-Type": "application/json"
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify(body)
         });
     }
@@ -287,7 +283,6 @@
 
         const file = fileInput.files[0];
         
-        // GINAGAMIT NA NATIN YUNG TINYPE MO SA TEXTBOX KESA SA AUTO-CALCULATOR
         let nextVersion = document.getElementById('displayVersion').value.trim();
         if(!nextVersion.startsWith('v')) nextVersion = 'v' + nextVersion;
         
@@ -295,9 +290,7 @@
 
         try {
             const base64Content = await getBase64(file);
-            const repo = "agravanteshawntezinzi-gif/phishguard-web";
-            const path = `app/${fileName}`;
-            const url = `https://api.github.com/repos/${repo}/contents/${path}`;
+            const targetUrl = `https://api.github.com/repos/agravanteshawntezinzi-gif/phishguard-web/contents/app/${fileName}`;
 
             const body = {
                 message: `Uploaded ${nextVersion} via Admin Dashboard`,
@@ -305,19 +298,15 @@
                 branch: "main"
             };
 
-            const response = await fetch(url, {
+            const response = await fetch(PYTHONANYWHERE_PROXY + encodeURIComponent(targetUrl), {
                 method: "PUT",
-                headers: {
-                    "Authorization": `Bearer ${SECRET_GITHUB_TOKEN}`,
-                    "Content-Type": "application/json"
-                },
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(body)
             });
 
             if (!response.ok) {
-                if(response.status === 401) alert("Upload Failed: Token Revoked.");
                 const errData = await response.json();
-                throw new Error(errData.message);
+                throw new Error(errData.message || "Failed to upload.");
             }
 
             publishBtn.innerText = "⏳ SYNCING FEATURES...";
@@ -326,15 +315,15 @@
             
             await updateGlobalManifest(fileName, finalFeatures);
 
-            alert(`✅ Success! ${nextVersion} has been uploaded to GitHub!`);
+            alert(`✅ Success! ${nextVersion} has been uploaded securely via PythonAnywhere!`);
             
             document.getElementById('appFeatures').value = '';
             fileInput.value = '';
             
-            await syncAppsFromGitHub();
+            await syncAppsFromServer();
 
         } catch (error) {
-            alert("❌ GitHub Upload Failed: " + error.message);
+            alert("❌ Upload Failed: " + error.message);
         } finally {
             publishBtn.innerText = "UPLOAD & PUBLISH";
             publishBtn.disabled = false;
@@ -342,14 +331,13 @@
     }
 
     async function deleteAppFromGitHub(id, gitPath, gitSha, filename, btnElement) {
-        if (confirm(`⚠️ WARNING: Are you sure you want to PERMANENTLY DELETE ${filename} from GitHub?`)) {
+        if (confirm(`⚠️ WARNING: Are you sure you want to PERMANENTLY DELETE ${filename}?`)) {
             
             btnElement.innerText = "⏳ Deleting...";
             btnElement.disabled = true;
 
             try {
-                const repo = "agravanteshawntezinzi-gif/phishguard-web";
-                const url = `https://api.github.com/repos/${repo}/contents/${gitPath}`;
+                const targetUrl = `https://api.github.com/repos/agravanteshawntezinzi-gif/phishguard-web/contents/${gitPath}`;
                 
                 const body = {
                     message: `Deleted ${filename} to free up space via Admin Dashboard`,
@@ -357,27 +345,24 @@
                     branch: "main"
                 };
 
-                const response = await fetch(url, {
+                const response = await fetch(PYTHONANYWHERE_PROXY + encodeURIComponent(targetUrl), {
                     method: "DELETE",
-                    headers: {
-                        "Authorization": `Bearer ${SECRET_GITHUB_TOKEN}`,
-                        "Content-Type": "application/json"
-                    },
+                    headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(body)
                 });
 
                 if (response.ok) {
                     setTimeout(async () => {
-                        await syncAppsFromGitHub();
-                        alert(`✅ Successfully deleted ${filename} from GitHub!`);
+                        await syncAppsFromServer();
+                        alert(`✅ Successfully deleted ${filename}!`);
                     }, 2000);
                 } else {
                     const errData = await response.json();
-                    throw new Error(errData.message);
+                    throw new Error(errData.message || "Failed to delete.");
                 }
 
             } catch (error) {
-                alert("❌ Failed to delete from GitHub: " + error.message);
+                alert("❌ Failed to delete: " + error.message);
                 btnElement.innerText = "🗑️ Delete";
                 btnElement.disabled = false;
             }
@@ -403,7 +388,7 @@
                         <p style="margin-top: 8px;"><strong>Features:</strong> ${app.features.join(', ')}</p>
                     </div>
                     <div>
-                        <button class="btn-delete" onclick="deleteAppFromGitHub(${app.id}, '${app.gitPath}', '${app.gitSha}', '${app.filename}', this)">🗑️ Delete</button>
+                        <button class="btn-delete" onclick="deleteAppFromGitHub(${app.id}, '${app.gitPath}', '${app.gitSha}', '${app.filename}', this)">🗑️ Delete from Server</button>
                     </div>
                 </div>
             `;
