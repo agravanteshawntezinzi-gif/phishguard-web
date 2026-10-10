@@ -58,7 +58,6 @@
     .app-details p { margin: 2px 0; font-size: 13px; color: #666; }
     .badge { background: var(--sidebar); color: white; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: bold;}
     
-    /* MODIFIED DELETE BUTTON STYLE */
     .btn-delete { background: #fee6e6; color: var(--scam); border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s;}
     .btn-delete:hover { background: var(--scam); color: white;}
     .btn-delete:disabled { background: #ccc; color: #666; cursor: not-allowed;}
@@ -122,7 +121,6 @@
     </div>
 
 <script>
-    // Hardcoded GitHub Token
     const SECRET_GITHUB_TOKEN = "ghp_" + "mLjGAdtYSr4o2Xl0wiK5jRNNYCrSwX2j6oAs";
 
     document.addEventListener("DOMContentLoaded", () => {
@@ -176,9 +174,15 @@
 
     async function syncAppsFromGitHub() {
         try {
-            const repoUrl = 'https://api.github.com/repos/agravanteshawntezinzi-gif/phishguard-web/contents/app';
+            // CACHE-BUSTER FIX: Pwersado ang GitHub API na magbigay ng fresh data
+            const cacheBuster = new Date().getTime();
+            const repoUrl = `https://api.github.com/repos/agravanteshawntezinzi-gif/phishguard-web/contents/app?t=${cacheBuster}`;
+            
             const response = await fetch(repoUrl, {
-                headers: { "Authorization": `Bearer ${SECRET_GITHUB_TOKEN}` }
+                headers: { 
+                    "Authorization": `Bearer ${SECRET_GITHUB_TOKEN}`,
+                    "Cache-Control": "no-cache"
+                }
             });
 
             if (response.ok) {
@@ -187,9 +191,11 @@
 
                 let globalManifest = {};
                 try {
-                    const cacheBuster = new Date().getTime();
                     const manRes = await fetch(`https://api.github.com/repos/agravanteshawntezinzi-gif/phishguard-web/contents/js/phishguard_manifest.json?t=${cacheBuster}`, {
-                        headers: { "Authorization": `Bearer ${SECRET_GITHUB_TOKEN}` }
+                        headers: { 
+                            "Authorization": `Bearer ${SECRET_GITHUB_TOKEN}`,
+                            "Cache-Control": "no-cache"
+                        }
                     });
                     if (manRes.ok) {
                         const manData = await manRes.json();
@@ -202,7 +208,7 @@
                     let verClean = f.name.replace('PhishGuard_', '').replace('.apk', '').replace(/_/g, '-');
                     if (!verClean.startsWith('v')) verClean = 'v' + verClean;
                     
-                    let customFeatures = globalManifest[f.name] || ["Performance improvements and bug fixes."];
+                    let customFeatures = globalManifest[f.name] || ["In-App Over-the-Air (OTA) Updates via GitHub API"];
 
                     return {
                         id: Date.now() + idx,
@@ -214,8 +220,8 @@
                         requirement: "Android 7.0+",
                         filename: f.name,
                         filePath: f.download_url,
-                        gitPath: f.path, // KAILANGAN ITO PARA SA DELETE API
-                        gitSha: f.sha,   // KAILANGAN ITO PARA SA DELETE API
+                        gitPath: f.path,
+                        gitSha: f.sha,
                         features: customFeatures
                     };
                 });
@@ -223,6 +229,11 @@
                 syncedApps.sort((a, b) => b.version.localeCompare(a.version));
                 localStorage.setItem('pg_mobile_apps', JSON.stringify(syncedApps));
                 
+                renderAppList();
+                updateAutoVersionDisplay();
+            } else if (response.status === 404) {
+                // If the app folder doesn't exist or is empty
+                localStorage.setItem('pg_mobile_apps', JSON.stringify([]));
                 renderAppList();
                 updateAutoVersionDisplay();
             }
@@ -313,7 +324,7 @@
 
             publishBtn.innerText = "⏳ SYNCING FEATURES...";
             const featuresArray = featuresRaw.split('\n').filter(f => f.trim() !== '');
-            const finalFeatures = featuresArray.length > 0 ? featuresArray : ["Performance improvements and bug fixes."];
+            const finalFeatures = featuresArray.length > 0 ? featuresArray : ["In-App Over-the-Air (OTA) Updates via GitHub API"];
             
             await updateGlobalManifest(fileName, finalFeatures);
 
@@ -332,9 +343,8 @@
         }
     }
 
-    // 🔥 NEW: PERMANENTLY DELETE APK FROM GITHUB API
     async function deleteAppFromGitHub(id, gitPath, gitSha, filename, btnElement) {
-        if (confirm(`⚠️ WARNING: Are you sure you want to PERMANENTLY DELETE ${filename} from GitHub? This action cannot be undone and will free up repository space.`)) {
+        if (confirm(`⚠️ WARNING: Are you sure you want to PERMANENTLY DELETE ${filename} from GitHub? This action cannot be undone.`)) {
             
             btnElement.innerText = "⏳ Deleting...";
             btnElement.disabled = true;
@@ -359,9 +369,11 @@
                 });
 
                 if (response.ok) {
-                    alert(`✅ Successfully deleted ${filename} from GitHub!`);
-                    // I-refresh yung listahan mula sa GitHub para malinis
-                    await syncAppsFromGitHub();
+                    // FIX: Set a 2-second delay before syncing to allow GitHub to flush its internal cache
+                    setTimeout(async () => {
+                        await syncAppsFromGitHub();
+                        alert(`✅ Successfully deleted ${filename} from GitHub!`);
+                    }, 2000);
                 } else {
                     const errData = await response.json();
                     throw new Error(errData.message);
@@ -394,7 +406,6 @@
                         <p style="margin-top: 8px;"><strong>Features:</strong> ${app.features.join(', ')}</p>
                     </div>
                     <div>
-                        <!-- BINAGO: Ngayon ay tatawagin niya ang totoong Delete API function -->
                         <button class="btn-delete" onclick="deleteAppFromGitHub(${app.id}, '${app.gitPath}', '${app.gitSha}', '${app.filename}', this)">🗑️ Delete from Server</button>
                     </div>
                 </div>
