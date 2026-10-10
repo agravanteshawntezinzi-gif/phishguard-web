@@ -32,5 +32,8 @@
   "PhishGuard_v1.0.4_Alpha.apk": [
     "In-App Over-the-Air (OTA) Updates via GitHub API",
     "Relationship AI Prediction"
+  ],
+  "PhishGuard_v1.0.4_Beta.apk": [
+    "fix auto label bug"
   ]
 }
