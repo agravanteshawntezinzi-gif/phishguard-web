@@ -28,5 +28,9 @@
   ],
   "PhishGuard_v1.0.3_Stable.apk": [
     "fake update demo"
+  ],
+  "PhishGuard_v1.0.4_Alpha.apk": [
+    "In-App Over-the-Air (OTA) Updates via GitHub API",
+    "Relationship AI Prediction"
   ]
 }
