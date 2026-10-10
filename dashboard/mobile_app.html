@@ -58,8 +58,10 @@
     .app-details p { margin: 2px 0; font-size: 13px; color: #666; }
     .badge { background: var(--sidebar); color: white; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: bold;}
     
+    /* MODIFIED DELETE BUTTON STYLE */
     .btn-delete { background: #fee6e6; color: var(--scam); border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s;}
     .btn-delete:hover { background: var(--scam); color: white;}
+    .btn-delete:disabled { background: #ccc; color: #666; cursor: not-allowed;}
 </style>
 </head>
 <body>
@@ -124,11 +126,8 @@
     const SECRET_GITHUB_TOKEN = "ghp_" + "mLjGAdtYSr4o2Xl0wiK5jRNNYCrSwX2j6oAs";
 
     document.addEventListener("DOMContentLoaded", () => {
-        // I-load agad ang laman ng local storage para mabilis
         renderAppList();
         updateAutoVersionDisplay();
-        
-        // At saka i-sync sa GitHub para makuha ang totoong files (Kahit anong device pa ito)
         syncAppsFromGitHub();
     });
 
@@ -175,7 +174,6 @@
         });
     }
 
-    // 🔥 FIX: Global Sync Function para sa Admin Dashboard
     async function syncAppsFromGitHub() {
         try {
             const repoUrl = 'https://api.github.com/repos/agravanteshawntezinzi-gif/phishguard-web/contents/app';
@@ -216,14 +214,13 @@
                         requirement: "Android 7.0+",
                         filename: f.name,
                         filePath: f.download_url,
+                        gitPath: f.path, // KAILANGAN ITO PARA SA DELETE API
+                        gitSha: f.sha,   // KAILANGAN ITO PARA SA DELETE API
                         features: customFeatures
                     };
                 });
 
-                // I-sort pababa para yung pinaka-latest version ang nasa itaas
                 syncedApps.sort((a, b) => b.version.localeCompare(a.version));
-
-                // I-save sa browser storage para gamitin sa susunod
                 localStorage.setItem('pg_mobile_apps', JSON.stringify(syncedApps));
                 
                 renderAppList();
@@ -250,9 +247,7 @@
                 const decoded = decodeURIComponent(escape(atob(data.content.replace(/\s/g, ''))));
                 existingManifest = JSON.parse(decoded);
             }
-        } catch(e) {
-            console.log("No existing manifest found, creating a new one in JS folder.");
-        }
+        } catch(e) {}
 
         existingManifest[fileName] = featuresArray;
 
@@ -327,7 +322,6 @@
             document.getElementById('appFeatures').value = '';
             fileInput.value = '';
             
-            // Sync from GitHub again to refresh the list safely
             await syncAppsFromGitHub();
 
         } catch (error) {
@@ -338,13 +332,46 @@
         }
     }
 
-    function deleteApp(id) {
-        if (confirm("Remove this release from the UI? (Note: It will reappear if you refresh because it syncs with GitHub. You must delete the file on GitHub manually to permanently remove it.)")) {
-            let apps = JSON.parse(localStorage.getItem('pg_mobile_apps')) || [];
-            apps = apps.filter(app => app.id !== id);
-            localStorage.setItem('pg_mobile_apps', JSON.stringify(apps));
-            renderAppList();
-            updateAutoVersionDisplay();
+    // 🔥 NEW: PERMANENTLY DELETE APK FROM GITHUB API
+    async function deleteAppFromGitHub(id, gitPath, gitSha, filename, btnElement) {
+        if (confirm(`⚠️ WARNING: Are you sure you want to PERMANENTLY DELETE ${filename} from GitHub? This action cannot be undone and will free up repository space.`)) {
+            
+            btnElement.innerText = "⏳ Deleting...";
+            btnElement.disabled = true;
+
+            try {
+                const repo = "agravanteshawntezinzi-gif/phishguard-web";
+                const url = `https://api.github.com/repos/${repo}/contents/${gitPath}`;
+                
+                const body = {
+                    message: `Deleted ${filename} to free up space via Admin Dashboard`,
+                    sha: gitSha,
+                    branch: "main"
+                };
+
+                const response = await fetch(url, {
+                    method: "DELETE",
+                    headers: {
+                        "Authorization": `Bearer ${SECRET_GITHUB_TOKEN}`,
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(body)
+                });
+
+                if (response.ok) {
+                    alert(`✅ Successfully deleted ${filename} from GitHub!`);
+                    // I-refresh yung listahan mula sa GitHub para malinis
+                    await syncAppsFromGitHub();
+                } else {
+                    const errData = await response.json();
+                    throw new Error(errData.message);
+                }
+
+            } catch (error) {
+                alert("❌ Failed to delete from GitHub: " + error.message);
+                btnElement.innerText = "🗑️ Delete";
+                btnElement.disabled = false;
+            }
         }
     }
 
@@ -367,7 +394,8 @@
                         <p style="margin-top: 8px;"><strong>Features:</strong> ${app.features.join(', ')}</p>
                     </div>
                     <div>
-                        <button class="btn-delete" onclick="deleteApp(${app.id})">🗑️ Hide</button>
+                        <!-- BINAGO: Ngayon ay tatawagin niya ang totoong Delete API function -->
+                        <button class="btn-delete" onclick="deleteAppFromGitHub(${app.id}, '${app.gitPath}', '${app.gitSha}', '${app.filename}', this)">🗑️ Delete from Server</button>
                     </div>
                 </div>
             `;
