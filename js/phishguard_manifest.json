@@ -39,5 +39,8 @@
   "PhishGuard_v1.0.4_Stable.apk": [
     "offline svm scanning mode(beta testing)",
     "improved AI fallback"
+  ],
+  "PhishGuard_v1.0.5_Alpha.apk": [
+    "fixed auto label bug"
   ]
 }
