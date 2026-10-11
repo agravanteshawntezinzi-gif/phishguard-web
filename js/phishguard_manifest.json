@@ -42,5 +42,8 @@
   ],
   "PhishGuard_v1.0.5_Alpha.apk": [
     "fixed auto label bug"
+  ],
+  "PhishGuard_v1.0.5_Beta.apk": [
+    "another bug fixed"
   ]
 }
