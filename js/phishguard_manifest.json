@@ -57,5 +57,8 @@
   ],
   "PhishGuard_v1.0.6_Stable.apk": [
     "fixed fallback"
+  ],
+  "PhishGuard_v1.0.7_Alpha.apk": [
+    "fixed scanner"
   ]
 }
