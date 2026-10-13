@@ -51,5 +51,8 @@
   ],
   "PhishGuard_v1.0.6_Alpha.apk": [
     "Dark mode"
+  ],
+  "PhishGuard_v1.0.6_Beta.apk": [
+    "Fixed Fallback"
   ]
 }
