@@ -60,5 +60,8 @@
   ],
   "PhishGuard_v1.0.7_Alpha.apk": [
     "fixed scanner"
+  ],
+  "PhishGuard_v1.0.7_Stable.apk": [
+    "fixed scan bugs"
   ]
 }
